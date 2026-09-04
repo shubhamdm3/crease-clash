@@ -1,10 +1,12 @@
 2026-09-04
-Java 17 core, controller, renderer, tests and desktop compilation: PASS
+Source commit: adaab2e50a8f05fb7cb281e5133f1b3237090946
+CI: https://github.com/shubhamdm3/crease-clash/actions/runs/33849387442
+Java core, desktop, LibGDX and Android compilation: PASS
 Behavioral assertions: 1863 PASS
 360-shot matrix: 1 run=112; 2 runs=39; 4 runs=58; 6 runs=93; wickets=58
-100 no-input innings and 40-delivery practice run: PASS
-Shared-renderer screenshots: 9 generated
-Java source syntax parse: all 11 files PASS
-Android XML well-formedness: PASS
-Gradle wrapper main class: present
-Android dependency resolution, type compilation, lint, APK assembly, installation and physical-device behavior: NOT VERIFIED
+Android lint: PASS (no errors)
+APK assembly and v2 signature verification: PASS
+Android 15 emulator installation/startup/input/background-return: PASS
+Actual Android screen rendering: visually reviewed
+APK SHA256: c5f45b9cfc0bee45427b4e9413237818632124978f363d68f89ab6f6d177a39e
+OnePlus physical-device timing, haptic feel and performance: NOT YET TESTED

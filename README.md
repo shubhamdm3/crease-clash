@@ -3,10 +3,13 @@
 An original offline, single-player stick-style cricket game, created for Shubham Mahendrakar.
 Java gameplay and vector artwork are shared between a desktop test harness and a LibGDX Android launcher.
 
-**Build status:** the Java core, controller, renderer, tests, and desktop application compile and run.
-The Android project and APK build workflow are included. **The first Android CI build is pending**.
-The development environment has no Android SDK and cannot download the SDK or Maven dependencies.
-See `BUILD-STATUS.md` for the exact verification boundary.
+**Android build verified:** debug APK assembly, Android lint, APK signature verification,
+and an Android 15 emulator smoke test passed. The emulator installed and launched the app,
+exercised a delivery, and returned to a paused game after backgrounding.
+Physical vibration feel, touch latency, and performance on the user's OnePlus remain to be tested.
+
+[Verified build and APK artifact](https://github.com/shubhamdm3/crease-clash/actions/runs/33849387442) — download `crease-clash-debug-apk` and extract `android-debug.apk`.
+This is the first playable debug build, not a Play Store release. See `BUILD-STATUS.md` for verification details.
 
 ## Play
 
@@ -24,7 +27,7 @@ Desktop shortcuts: **A / Left** = left shot, **D / Right** = right shot,
 
 ## Run the included desktop build
 
-Install Java 17 or newer. From the extracted project directory:
+Install Java 17 or newer. Download and extract `crease-clash-preview-and-desktop` from the verified build above, then run from the extracted directory:
 
 ```sh
 java -jar crease-clash-desktop.jar
@@ -71,7 +74,7 @@ Push the project to the root of a repository on its `main` branch.
 The included `.github/workflows/build.yml` runs the rules checks, compiles Android,
 runs Android lint, renders desktop screenshots, and uploads an artifact named
 `crease-clash-debug-apk`. Download and unzip that artifact to obtain the APK.
-The workflow can also be started manually from the repository's Actions tab.
+The workflow also verifies the APK signature and runs an Android 15 emulator smoke test. It can be started manually from the repository's Actions tab.
 
 Repository: https://github.com/shubhamdm3/crease-clash. The initial Android workflow runs on `main`.
 
@@ -101,11 +104,11 @@ There is no mid-match persistence after Android process termination; restarting 
 The simulation uses a fixed 120 Hz step. Rendering follows the device frame rate.
 The 1440x810 interface is fitted without cropping, with margins on wider screens.
 The desktop screenshots verify shared scene layout, not Android OpenGL rendering or physical touch latency.
-Android compilation, installation, font rendering, audio, haptics, performance, and device lifecycle still require verification.
+Android compilation, lint, installation, screen rendering, and basic lifecycle were verified in CI. Physical audio/haptic feel, touch latency, and performance on a real phone still need testing.
 
 ## Next device pass
 
-Once an APK is available, test on the OnePlus:
+Install the debug APK and test on the OnePlus:
 
 1. Finish one chase and one practice session.
 2. Try early, perfect, late, missed, ground, and lofted shots.
@@ -121,4 +124,4 @@ Once an APK is available, test on the OnePlus:
 - [Android Gradle Plugin 8.10 compatibility](https://developer.android.com/build/releases/agp-8-10-0-release-notes)
 
 The version combination follows the existing Last Lantern project: Gradle 8.11.1,
-Android Gradle Plugin 8.10.1, LibGDX 1.14.2, JDK 17. It has not been resolved locally for this new project.
+Android Gradle Plugin 8.10.1, LibGDX 1.14.2, JDK 17. These dependencies were resolved and the Android project built successfully in GitHub Actions.
