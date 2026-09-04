@@ -14,9 +14,9 @@ Download `crease-clash-debug-apk` from a successful
 [GitHub Actions run](https://github.com/shubhamdm3/crease-clash/actions), then extract the APK.
 See `BUILD-STATUS.md` for validation. This is an original arcade prototype for device testing.
 
-v0.2 and subsequent CI builds reuse the same cached development signing key. If Android
-rejects an update due to a key mismatch, uninstall the old test build first (this resets
-local settings and best score). This is not a production signing arrangement.
+This v0.3 build uses a different debug signing certificate from v0.2. Uninstall v0.2 before
+installing v0.3; this resets local settings and the best score. Development signing-key
+caching did not persist, so update compatibility must not be assumed for test builds.
 
 ## Play
 

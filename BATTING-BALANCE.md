@@ -29,6 +29,8 @@ The numerical tuning below is our own design, not a claimed reproduction of anot
   Playing across the line reduces power; fielders can still catch it.
 - Good: up to 78% quality. Early/late: progressively less power. Mistimed lofts can be caught,
   produce running runs or bounce for four; they cannot clear the rope on the full.
+- Two close fielders collect weak shots sooner, preventing assisted ground shots from
+  farming easy threes.
 - No input still misses. Pro and Elite keep manual timing; premature taps can be retried.
 
 | Difficulty | Contact window around arrival | Perfect window around arrival |

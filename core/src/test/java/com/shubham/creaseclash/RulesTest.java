@@ -59,6 +59,7 @@ public final class RulesTest {
             check(Math.signum(g.velocityX)==side && g.velocityY>0,"Shot goes to selected screen side and down the pitch");
             check(g.timingGrade==Timing.ASSISTED && g.quality<=.38 && !g.sixEligible,"Early assistance cannot grant perfect power");
             untilResult(g); check(!g.lastWicket,"Assisted ground shot stays safe");
+            check(g.lastRuns<=2,"Weak assisted ground shots cannot farm easy threes");
         }
         g=fresh(2); g.swing(-1); g.swing(1);
         check(g.shotSide==1,"Can change a queued shot direction");
@@ -127,7 +128,7 @@ public final class RulesTest {
         s.selected=Difficulty.CLUB; s.start(true); s.tap(240,730);
         check(s.game.shotQueued && s.game.shotSide==-1,"Left touch queues on-side shot");
         s.tap(1180,730); check(s.game.shotSide==1,"Right touch changes to off-side");
-        untilResult(s.game); check(s.game.hits==1 && s.game.runs>0,"Touch controls score runs without precision timing");
+        untilResult(s.game); check(s.game.hits==1 && s.game.runs<=2,"Early touch connects but close fielders limit free runs");
 
         // Regression: v0.2 auto-promoted every queued loft to maximum power.
         for(int seed=0;seed<100;seed++) for(int side:new int[]{-1,1}) {

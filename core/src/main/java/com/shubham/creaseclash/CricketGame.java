@@ -52,7 +52,7 @@ public final class CricketGame {
     public CricketGame(long seed, Feedback feedback) {
         random=new Random(seed); this.feedback=feedback;
         // Gaps are intentional: shot direction and timing should beat the field.
-        double[][] positions={{-37,-31},{-13,-48},{27,-39},{46,-6},{-46,9},{26,32},{-22,33},{-51,-21},{51,-24}};
+        double[][] positions={{-37,-31},{-12,-6},{13,-2},{46,-6},{-46,9},{26,32},{-22,33},{-51,-21},{51,-24}};
         for(double[] p:positions) fielders.add(new Fielder(p[0],p[1]));
         ballY=26;
     }

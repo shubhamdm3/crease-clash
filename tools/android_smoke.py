@@ -75,6 +75,7 @@ hits = [line for line in events.splitlines() if 'event=hit ' in line]
 assert len(hits) == 2, events
 assert all('grade=ASSISTED' in line and 'sixEligible=false' in line for line in hits), events
 assert 'lastRuns=6' not in events, 'Early queued shots must never score six'
+assert 'event=run side=-1 runs=3 balls=1' not in events, 'Close fielders must stop easy assisted threes'
 
 tap(1359, 55)  # Pause
 time.sleep(.4)
