@@ -24,6 +24,9 @@ def tap(x, y):
     physical_y = round((height-810*scale)/2 + y*scale)
     adb('shell', 'input', 'tap', str(physical_x), str(physical_y))
 
+# Acknowledge the emulator's fullscreen onboarding tip before testing the game UI.
+# This is a System UI tutorial preference, not an application permission.
+adb('shell', 'settings', 'put', 'secure', 'immersive_mode_confirmations', 'confirmed')
 adb('install', '-r', 'android/build/outputs/apk/debug/android-debug.apk')
 adb('logcat', '-c')
 launch = adb('shell', 'am', 'start', '-W', '-n', f'{PACKAGE}/{ACTIVITY}')
