@@ -7,6 +7,7 @@ public final class GameSession {
         void writeInt(String key,int value);
         void sound(String event);
         void vibrate(String event);
+        default void event(String event) { }
     }
     public final CricketGame game;
     public final Platform platform;
@@ -22,6 +23,7 @@ public final class GameSession {
         game=new CricketGame(seed,this::feedback);
     }
     private void feedback(String event) {
+        platform.event(event);
         if(sound) platform.sound(event);
         if(haptics && (event.equals("hit") || event.equals("wicket") || event.equals("boundary"))) platform.vibrate(event);
     }
@@ -65,12 +67,12 @@ public final class GameSession {
             return;
         }
         if(hit(x,y,1320,28,78,54)) { game.setPaused(true); return; }
-        if(hit(x,y,344,682,276,92)) game.swing(-1);
-        else if(hit(x,y,1116,682,276,92)) game.swing(1);
-        else if(hit(x,y,658,682,242,92)) {
+        if(hit(x,y,40,682,420,100)) game.swing(-1);
+        else if(hit(x,y,980,682,420,100)) game.swing(1);
+        else if(hit(x,y,490,682,200,100)) {
             if(game.phase==CricketGame.Phase.READY) game.bowl();
         }
-        else if(hit(x,y,928,682,160,92)) game.toggleLoft();
+        else if(hit(x,y,720,682,230,100)) game.toggleLoft();
     }
     public static boolean hit(double x,double y,double bx,double by,double w,double h) {
         return x>=bx && x<=bx+w && y>=by && y<=by+h;

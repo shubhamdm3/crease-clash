@@ -1,41 +1,15 @@
-# Verified build — Crease Clash v0.1.0
+# v0.2 validation
 
-[Successful Android build and runtime evidence](https://github.com/shubhamdm3/crease-clash/actions/runs/33849387442)
+Local checks passed: 3,270 behavioral assertions, including 200 early assisted shots,
+correct left/right velocity, retry after an early timed tap, pause/restart queue handling,
+real controller coordinates, scoring, and a 360-shot outcome matrix across all difficulties.
 
-APK source commit: `adaab2e50a8f05fb7cb281e5133f1b3237090946`. Subsequent documentation-only changes do not alter the APK source.
+The Android CI gate builds and lints the APK, verifies its signature, installs it on Android 15,
+and requires actual LEFT and RIGHT touch inputs to produce logged contact and resolve both
+balls. It also captures screenshots and checks background/resume stability.
 
-## Verified
+The v0.2 Android run is pending at this source commit. Its run result and artifacts in GitHub
+Actions are authoritative. The previous v0.1 smoke test checked launch and lifecycle but did
+not assert successful contact; the new test specifically closes that gap.
 
-- Java 17 core, controller, renderer, desktop, LibGDX, and Android compilation.
-- Android debug APK assembly and Android lint without errors.
-- APK Signature Scheme v2 verification.
-- 1,863 behavioral assertions, including 100 no-input innings, a 40-delivery practice session,
-  and 360 shot scenarios across the three difficulties.
-- One-swing enforcement, wickets, boundaries, automatic running, target completion,
-  innings limits, pause/resume, frame-rate independence, settings, and best-score persistence.
-- APK installation and launch on an Android 15 x86_64 emulator.
-- Actual OpenGL screen rendering at 1920x1080; menu, game, and paused state visually inspected.
-- Practice input, a completed delivery, and background/return without a crash.
-- The app returns to a paused state after backgrounding. Android focus loss also requests a pause.
-- ZIP integrity and expected manifest, DEX, font/audio assets, and ARM64 native library.
-
-## APK
-
-- Application ID: `com.shubham.creaseclash`
-- Version: `0.1.0` (version code 1)
-- Minimum Android: API 26 (Android 8.0)
-- Target SDK: 35; compile SDK: 36
-- Architectures: arm64-v8a, armeabi-v7a, x86_64
-- Size: 4,657,534 bytes
-- SHA-256: `c5f45b9cfc0bee45427b4e9413237818632124978f363d68f89ab6f6d177a39e`
-- No internet permission; vibration and a generated internal receiver permission are present.
-
-## Still requires a real phone
-
-- Batting responsiveness and whether early/late timing feels fair.
-- Physical hit, wicket, and boundary vibration strength.
-- Audio volume, sustained performance, battery use, and both landscape orientations.
-- OnePlus-specific behavior and Android 16 device validation.
-
-The emulator test covers startup, basic input and lifecycle; it is not a full playthrough or a performance benchmark.
-This debug build is intended for first-play testing. Its signing configuration is not a production release configuration.
+Physical touch latency, haptic feel, and performance on the user's OnePlus still need a device pass.

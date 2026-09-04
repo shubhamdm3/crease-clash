@@ -40,17 +40,34 @@ public final class RulesTest {
         check(g.clock==pausedClock && g.balls==pausedBalls && !g.swung,"Pause freezes simulation and rejects actions");
         g.setPaused(false); g.update(STEP); check(g.clock<pausedClock+.02,"Resume does not accumulate paused time");
 
-        g=fresh(11); delivery(g);
-        check(!g.swing(1),"A very early swing misses");
+        g=fresh(11); g.start(false,Difficulty.PRO); delivery(g);
+        check(!g.swing(1) && !g.swung,"A very early timed tap does not use up the swing");
         while(g.clock<g.deliveryDuration) g.update(STEP);
-        check(!g.swing(1),"A second tap cannot rescue a missed swing");
-        untilResult(g); check(g.balls==1 && g.runs==0,"A miss counts exactly one ball");
+        check(g.swing(1),"A second tap rescues premature input in timed mode");
+        check(!g.swing(-1),"Cannot hit the same ball twice");
+        untilResult(g); check(g.balls==1,"A corrected shot counts exactly one ball");
         for(int i=0;i<30;i++) g.update(STEP);
         check(g.balls==1,"Result animation does not score twice");
 
-        g=fresh(2); delivery(g); g.lofted=true; ideal(g);
-        check(g.timing.equals("PERFECT") && g.quality>.95,"Perfect timing gives clean contact");
-        untilResult(g); check(g.lastRuns==6 && !g.lastWicket,"Clean lofted gap shot clears boundary");
+        // Phone controls must connect even when pressed well before the delivery arrives.
+        for(int seed=0;seed<100;seed++) for(int side:new int[]{-1,1}) {
+            g=fresh(seed*982451653L);
+            check(g.swing(side),"Club shot starts delivery from ready");
+            check(g.phase==Phase.RUNUP && g.shotQueued && !g.swung,"Early shot remains queued");
+            int guard=0; while(g.phase!=Phase.SHOT && guard++<700) g.update(STEP);
+            check(g.phase==Phase.SHOT && g.hits==1,"Queued Club input produces real contact");
+            check(Math.signum(g.velocityX)==side && g.velocityY>0,"Shot goes to selected screen side and down the pitch");
+            check(g.timing.equals("CLEAN HIT") && g.quality==1,"Club removes timing and line penalties");
+            untilResult(g); check(!g.lastWicket,"Assisted ground shot stays safe");
+        }
+        g=fresh(2); g.swing(-1); g.swing(1);
+        check(g.shotSide==1,"Can change a queued shot direction");
+        g.setPaused(true); double queuedClock=g.clock; g.update(10);
+        check(g.shotQueued && g.clock==queuedClock,"Pause retains the queued shot without advancing");
+        g.start(true,Difficulty.CLUB); check(!g.shotQueued,"Restart clears queued input");
+        delivery(g); g.lofted=true; ideal(g);
+        check(g.timing.equals("CLEAN HIT") && g.quality==1,"Club contact is assisted");
+        untilResult(g);
 
         g=fresh(4); placeShot(g,61.9,0,5,false); g.velocityX=30;
         g.update(STEP); check(g.runs==6,"Airborne rope crossing scores six");
@@ -97,7 +114,7 @@ public final class RulesTest {
         FakePlatform p=new FakePlatform(); GameSession s=new GameSession(44,p);
         s.tap(370,456); check(s.selected==Difficulty.PRO,"Difficulty selector works");
         s.tap(200,550); check(s.game.phase==Phase.READY && s.game.difficulty==Difficulty.PRO,"Play starts selected difficulty");
-        s.tap(1000,720); check(s.game.lofted,"Loft control works");
+        s.tap(835,720); check(s.game.lofted,"Loft control works");
         s.tap(1270,55); check(!s.haptics && p.readInt("haptics",1)==0,"Haptic setting persists");
         s.tap(1360,55); check(s.game.paused,"Pause control works");
         s.tap(720,390); check(!s.game.paused,"Resume control works");
@@ -106,6 +123,11 @@ public final class RulesTest {
         s.start(false); s.game.runs=35; s.game.phase=Phase.MATCH_OVER; s.update(STEP);
         check(s.best==35 && p.readInt("best",0)==35,"Completed chase records best score");
         s.start(true); s.game.runs=90; s.update(STEP); check(s.best==35,"Practice does not inflate best chase score");
+
+        s.selected=Difficulty.CLUB; s.start(true); s.tap(240,730);
+        check(s.game.shotQueued && s.game.shotSide==-1,"Left touch queues on-side shot");
+        s.tap(1180,730); check(s.game.shotSide==1,"Right touch changes to off-side");
+        untilResult(s.game); check(s.game.hits==1 && s.game.runs>0,"Touch controls score runs without precision timing");
 
         Map<String,Integer> outcomes=new TreeMap<>();
         for(Difficulty difficulty:Difficulty.values()) for(int seed=0;seed<120;seed++) {

@@ -8,7 +8,7 @@ import java.util.Random;
 public final class CricketGame {
     public enum Phase { MENU, READY, RUNUP, DELIVERY, SHOT, RETURN, RESULT, MATCH_OVER }
     public enum Difficulty {
-        CLUB("CLUB", 24, .175, .045, 1.58),
+        CLUB("CLUB", 24, .32, .10, 1.85),
         PRO("PRO", 32, .135, .035, 1.33),
         ELITE("ELITE", 42, .105, .027, 1.12);
         public final String label;
@@ -35,8 +35,8 @@ public final class CricketGame {
     public final List<String> history=new ArrayList<>();
     public Phase phase=Phase.MENU;
     public Difficulty difficulty=Difficulty.CLUB;
-    public boolean practice, paused, lofted, swung, grounded, won, lastWicket;
-    public int runs,wickets,balls,lastRuns,shotSide=1;
+    public boolean practice, paused, lofted, swung, grounded, won, lastWicket, shotQueued;
+    public int runs,wickets,balls,lastRuns,hits,shotSide=1;
     public double clock, animation, ballX,ballY,ballZ,velocityX,velocityY,velocityZ;
     public double deliveryDuration, deliveryLine, bounceFraction, bounceHeight, swingAt=-99;
     public double timingError, quality, shotClock, returnDuration;
@@ -54,7 +54,7 @@ public final class CricketGame {
     }
     public void start(boolean practice, Difficulty difficulty) {
         this.practice=practice; this.difficulty=difficulty;
-        runs=wickets=balls=lastRuns=0; history.clear(); paused=false; lofted=false;
+        runs=wickets=balls=lastRuns=hits=0; history.clear(); paused=false; lofted=false;
         won=false; timing=""; result=""; accumulator=0; animation=0;
         ready();
     }
@@ -65,7 +65,7 @@ public final class CricketGame {
     }
     public void bowl() {
         if(phase!=Phase.READY || paused) return;
-        phase=Phase.RUNUP; clock=0; swung=false; swingAt=-99; catcher=-1;
+        phase=Phase.RUNUP; clock=0; swung=false; shotQueued=false; swingAt=-99; catcher=-1;
         timing=""; result=""; lastWicket=false; lastRuns=0;
         deliveryLine=(random.nextDouble()*2-1)*2.65;
         bounceFraction=.54+random.nextDouble()*.2;
@@ -78,31 +78,47 @@ public final class CricketGame {
     public void toggleLoft() {
         if(!paused && phase!=Phase.SHOT && phase!=Phase.RETURN && phase!=Phase.RESULT) lofted=!lofted;
     }
-    /** One swing per delivery. A held button never repeats. */
+    /** Club accepts a direction throughout the run-up; contact is timed by the assist. */
     public boolean swing(int side) {
-        if(phase!=Phase.DELIVERY || paused || swung) return false;
-        swung=true; shotSide=side<0?-1:1; swingAt=animation;
+        if(paused || swung) return false;
+        if(difficulty==Difficulty.CLUB) {
+            if(phase==Phase.READY) bowl();
+            if(phase!=Phase.RUNUP && phase!=Phase.DELIVERY) return false;
+            shotSide=side<0?-1:1; shotQueued=true; timing="SHOT READY";
+            feedback.emit("queued");
+            if(phase==Phase.DELIVERY && clock>=deliveryDuration) connect(true);
+            return true;
+        }
+        if(phase!=Phase.DELIVERY) return false;
+        shotSide=side<0?-1:1;
         timingError=clock-deliveryDuration;
+        // A premature tap gives feedback but never locks out a later correction.
         if(Math.abs(timingError)>difficulty.window) {
-            timing=timingError<0?"TOO EARLY":"TOO LATE";
+            swingAt=animation;
+            timing=timingError<0?"EARLY - TAP AGAIN":"TOO LATE";
             return false;
         }
+        connect(false);
+        return true;
+    }
+    private void connect(boolean assisted) {
+        swung=true; shotQueued=false; swingAt=animation; hits++;
+        timingError=assisted?0:clock-deliveryDuration;
         double normalized=Math.abs(timingError)/difficulty.window;
         quality=1-.70*normalized;
         boolean wrongSide=Math.abs(deliveryLine)>1.1 && Math.signum(deliveryLine)!=shotSide;
-        if(wrongSide) quality*=.72;
-        timing=Math.abs(timingError)<=difficulty.perfect?"PERFECT":timingError<0?"EARLY":"LATE";
-        detail=wrongSide?"Across the line - less control":lofted?"Aerial shot - watch the field":"Along the ground - find the gap";
+        if(wrongSide && !assisted) quality*=.72;
+        timing=assisted?"CLEAN HIT":Math.abs(timingError)<=difficulty.perfect?"PERFECT":timingError<0?"EARLY":"LATE";
+        detail=wrongSide && !assisted?"Across the line - less control":lofted?"Aerial shot - watch the field":"Along the ground - find the gap";
         double angle=Math.toRadians(53+timingError/difficulty.window*27+deliveryLine*2);
         double speed=lofted?23+quality*21:12+quality*30;
         velocityX=shotSide*Math.sin(angle)*speed;
-        velocityY=-Math.cos(angle)*speed;
+        velocityY=Math.cos(angle)*speed;
         velocityZ=lofted?5+quality*11:1.4;
         ballX=deliveryLine; ballY=BATTER_Y; ballZ=lofted?.9:.25;
         ballPreviousZ=ballZ;
         grounded=false; shotClock=0; clock=0; phase=Phase.SHOT;
         feedback.emit("hit");
-        return true;
     }
     public void update(double seconds) {
         if(paused) return;
@@ -127,6 +143,7 @@ public final class CricketGame {
                 }
                 if(ballPreviousZ>.04 && ballZ<=.04 && t<.85) feedback.emit("bounce");
                 ballPreviousZ=ballZ;
+                if(shotQueued && clock>=deliveryDuration) { connect(true); break; }
                 if(clock>deliveryDuration+difficulty.window) {
                     if(!swung) timing="MISSED";
                     boolean bowled=Math.abs(deliveryLine)<1.12;
@@ -220,9 +237,10 @@ public final class CricketGame {
         feedback.emit(wicket?"wicket":awarded>=4?"boundary":"run");
     }
     private void ready() {
-        phase=Phase.READY; clock=0; swung=false; swingAt=-99;
+        phase=Phase.READY; clock=0; swung=false; shotQueued=false; swingAt=-99;
         ballX=0; ballY=26; ballZ=0; ballPreviousZ=0; catcher=-1;
         for(Fielder f:fielders) f.reset();
+        feedback.emit("ready");
     }
     public boolean isFinished() { return !practice && (won || balls>=MAX_BALLS || wickets>=MAX_WICKETS); }
     public int needed() { return Math.max(0,difficulty.target-runs); }

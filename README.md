@@ -3,21 +3,33 @@
 An original offline, single-player stick-style cricket game, created for Shubham Mahendrakar.
 Java gameplay and vector artwork are shared between a desktop test harness and a LibGDX Android launcher.
 
-**Android build verified:** debug APK assembly, Android lint, APK signature verification,
-and an Android 15 emulator smoke test passed. The emulator installed and launched the app,
-exercised a delivery, and returned to a paused game after backgrounding.
-Physical vibration feel, touch latency, and performance on the user's OnePlus remain to be tested.
+## v0.2 batting update
 
-[Verified build and APK artifact](https://github.com/shubhamdm3/crease-clash/actions/runs/33849387442) — download `crease-clash-debug-apk` and extract `android-debug.apk`.
-This is the first playable debug build, not a Play Store release. See `BUILD-STATUS.md` for verification details.
+Club mode now accepts an early shot selection and times contact automatically. Tap a shot
+from READY to begin the next delivery in one action. You can change the direction before
+contact. Pro and Elite retain manual timing, but an early tap no longer wastes the ball.
+
+The camera now looks from behind a right-handed batter: **on / leg side LEFT, off side RIGHT**.
+The batter is larger, the white ball has a trail and landing cue, and the camera widens after
+contact. The stadium, kits, scoreboard, and larger thumb controls have been redrawn.
+
+Download the latest successful `crease-clash-debug-apk` artifact from
+[GitHub Actions](https://github.com/shubhamdm3/crease-clash/actions) and extract `android-debug.apk`.
+This remains an original arcade prototype for device testing. See `BUILD-STATUS.md` for evidence.
+
+**Upgrading from v0.1:** that build used a temporary debug signing key. Uninstall v0.1 before
+installing v0.2; uninstalling clears the local best score and settings. CI now caches its debug
+keystore for subsequent test builds. This is not a production release signing arrangement.
 
 ## Play
 
 - **Chase:** 12 deliveries, 3 wickets. Club target 24, Pro 32, Elite 42.
 - **Practice:** unlimited deliveries and wickets; practice does not affect your best chase score.
-- Choose **GROUND** or **LOFT**, then tap **BOWL**.
-- Watch the ball bounce and tap **LEFT SHOT** or **RIGHT SHOT** as it reaches the batter.
-- One swing per ball. Early/late shots lose power; batting across the line reduces control.
+- Start with **CLUB**, then tap **HIT LEFT** or **HIT RIGHT**. It bowls and queues your shot.
+- You can also tap **BOWL** first, then choose a side during the run-up or delivery.
+- In Club, contact is automatic once a shot is queued. No precise reflex timing is needed.
+- Choose **GROUND SHOT** for safer runs or **LOFTED SHOT** to attempt a boundary with catch risk.
+- In Pro / Elite, tap at the yellow crease. Early taps can be retried; late contact loses power.
 - Fours, sixes, catches, and pickups follow the ball simulation. Running is automatic, up to three runs.
 - Sound and haptics can be switched off independently. Best score, difficulty, and settings persist.
 - Backgrounding pauses the game. Resume explicitly so a delivery cannot play unseen.
@@ -27,7 +39,7 @@ Desktop shortcuts: **A / Left** = left shot, **D / Right** = right shot,
 
 ## Run the included desktop build
 
-Install Java 17 or newer. Download and extract `crease-clash-preview-and-desktop` from the verified build above, then run from the extracted directory:
+Install Java 17 or newer. Download and extract `crease-clash-preview-and-desktop` from a successful build, then run from the extracted directory:
 
 ```sh
 java -jar crease-clash-desktop.jar
@@ -111,8 +123,8 @@ Android compilation, lint, installation, screen rendering, and basic lifecycle w
 Install the debug APK and test on the OnePlus:
 
 1. Finish one chase and one practice session.
-2. Try early, perfect, late, missed, ground, and lofted shots.
-3. Check that ball visibility and tap timing feel fair.
+2. In Club, tap a shot early and verify it connects; try both sides and shot types.
+3. Check the closer camera and ball visibility. Try Pro when you want manual timing.
 4. Confirm hit, wicket, and boundary vibrations feel distinct; switch vibration off.
 5. Background during a delivery, return, and resume from the pause screen.
 6. Check both landscape orientations for comfortable controls and safe screen margins.

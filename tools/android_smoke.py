@@ -43,25 +43,46 @@ tap(720, 650)
 tap(180, 625)  # Practice
 time.sleep(.5)
 capture('03-practice')
-tap(780, 725)  # Bowl
-time.sleep(1.8)
-capture('04-delivery')
-tap(482, 725)  # One real shot input, timing deliberately unconstrained
-time.sleep(3.5)
-capture('05-after-delivery')
+def wait_event(pattern, count=1, timeout=70):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        logs = adb('logcat', '-d', '-s', 'CreaseClash:I', '*:S')
+        if logs.count(pattern) >= count:
+            return logs
+        time.sleep(.5)
+    (OUT/'failed-events.txt').write_text(logs)
+    raise AssertionError(f'Missing game event {pattern!r} (expected {count}): {logs}')
+
+# Actual Android touch input: one EARLY press starts bowling and must hit on its own.
+# No hidden autoplay, frame-perfect injection, or direct simulation calls.
+tap(240, 730)
+wait_event('event=queued side=-1')
+capture('04-left-shot-queued')
+wait_event('event=hit side=-1')
+capture('05-left-contact')
+wait_event('event=ready', count=2)
+capture('06-left-result')
+# Exercise opposite direction and loft selection on the same installed app.
+tap(835, 730)
+tap(1180, 730)
+wait_event('event=queued side=1')
+wait_event('event=hit side=1')
+capture('07-right-contact')
+wait_event('event=ready', count=3)
+capture('08-two-balls-played')
 tap(1359, 55)  # Pause
 time.sleep(.4)
-capture('06-pause')
+capture('09-pause')
 
 adb('shell', 'input', 'keyevent', 'KEYCODE_HOME')
 time.sleep(.5)
 adb('shell', 'am', 'start', '-W', '-n', f'{PACKAGE}/{ACTIVITY}')
 time.sleep(1)
-capture('07-return-from-background')
+capture('10-return-from-background')
 pid = adb('shell', 'pidof', PACKAGE).strip()
 assert pid, 'Game process stopped during the smoke test'
 logs = adb('logcat', '-d', f'--pid={pid}')
 (OUT/'app-logcat.txt').write_text(logs)
 assert 'FATAL EXCEPTION' not in logs, logs
-(OUT/'result.txt').write_text(f'PASS: APK installed, launched, accepted input, stayed alive through a delivery and background/resume.\nResolution: {width}x{height}\nPhysical haptic feel and OnePlus latency are not tested by an emulator.\n')
+(OUT/'result.txt').write_text(f'PASS: APK installed and launched; real early LEFT and RIGHT touch inputs each connected, both balls resolved, and the app survived background/resume.\nResolution: {width}x{height}\nPhysical haptic feel and OnePlus latency are not tested by an emulator.\n')
 print((OUT/'result.txt').read_text())

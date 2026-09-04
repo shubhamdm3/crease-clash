@@ -5,16 +5,19 @@ import static com.shubham.creaseclash.CricketGame.Phase;
 /** Original vector artwork. No downloaded cricket artwork, logos, or player likenesses. */
 public final class GameRenderer {
     public static final int W=1440,H=810;
-    private static final int BG=0xff10292d,INK=0xff102b30,PANEL=0xff19363a,WHITE=0xfff5f2df;
-    private static final int MUTED=0xffa6b9b4,LIME=0xffdbef7d,CORAL=0xfff58a71,GRASS=0xff48785d;
+    private static final int BG=0xff101e32,INK=0xff152337,PANEL=0xff1e3348,WHITE=0xfff5f2df;
+    private static final int MUTED=0xffa6b9b4,LIME=0xffffd76b,CORAL=0xfff58a71,GRASS=0xff48785d;
     private Draw d;
     private GameSession session;
     private CricketGame g;
-    private double cx=850,cy=394,sx=489.0/CricketGame.RADIUS,sy=233.0/CricketGame.RADIUS;
+    private double cx=720,cy=480,sx=10,sy=-2.8,wide;
 
     public void render(Draw draw,GameSession session) {
         d=draw; this.session=session; g=session.game;
         d.rect(0,0,W,H,BG);
+        wide=g.phase==Phase.MENU?0:g.phase==Phase.SHOT?CricketGame.clamp((g.shotClock-.18)/.65,0,1):
+            g.phase==Phase.RETURN || g.phase==Phase.RESULT || g.phase==Phase.MATCH_OVER?1:0;
+        wide=wide*wide*(3-2*wide);
         stadium();
         header();
         if(g.phase==Phase.MENU) menu();
@@ -37,7 +40,7 @@ public final class GameRenderer {
         smallButton(1140,"SOUND",session.sound);
         smallButton(1230,"HAPTIC",session.haptics);
         d.roundRect(1320,28,78,54,13,PANEL);
-        if(g.phase==Phase.MENU) d.text("v0.1",1359,61,15,MUTED,true);
+        if(g.phase==Phase.MENU) d.text("v0.2",1359,61,15,MUTED,true);
         else { d.rect(1349,44,6,22,WHITE); d.rect(1363,44,6,22,WHITE); }
         d.line(40,106,1400,106,1,0xff36504d);
     }
@@ -47,89 +50,106 @@ public final class GameRenderer {
         d.text(on?"ON":"OFF",x+39,69,13,on?LIME:CORAL,true);
     }
     private void stadium() {
-        // Stadium silhouette and seating tiers remain behind the rope.
-        d.oval(cx,cy+4,534,266,0xff213d3d);
-        d.oval(cx,cy,522,252,0xff385a51);
-        for(int row=0;row<3;row++) {
-            for(int i=0;i<88;i++) {
-                double angle=Math.PI+(i+.5)*Math.PI/88;
-                double x=cx+Math.cos(angle)*(511+row*8),y=cy+Math.sin(angle)*(239+row*7);
-                int color=(i+row*3)%7==0?LIME:(i+row)%4==0?CORAL:0xff829a82;
-                d.oval(x,y,2.7,2.7,color);
+        // Evening sky and layered stands: generated from vector shapes on every platform.
+        for(int i=0;i<24;i++) d.rect(0,107+i*7,1440,8,mix(0xff234565,0xffe3b698,i/23.0));
+        d.oval(1200,182,32,32,0xffffe0a1);
+        for(int i=0;i<24;i++) {
+            double x=i*65,top=212-(i*37%39);
+            d.rect(x,top,48,260-top,0xff445766);
+        }
+        d.polygon(new double[]{0,229,200,205,720,224,1210,205,1440,227,1440,322,0,322},0xff233447);
+        for(int row=0;row<5;row++) {
+            double y=237+row*13;
+            d.line(0,y+7,1440,y+7,3,0xff10283d);
+            for(int i=0;i<140;i++) {
+                int color=(i*7+row*11)%13<3?0xfff9cb73:(i+row)%3==0?0xff7aa8cc:0xffd0c8b3;
+                d.oval(i*10.5+(row%2)*5,y,2.2,3,color);
             }
         }
-        floodlight(385,162); floodlight(1320,162);
-        d.oval(cx,cy,494,238,0xffd5d8ac);
-        d.oval(cx,cy,489,233,GRASS);
-        for(int ring=5;ring>=1;ring--) {
-            d.oval(cx,cy,489*ring/6.0,233*ring/6.0,ring%2==0?0xff48785d:0xff4b7c60);
+        floodlight(107,174); floodlight(1333,174);
+        d.rect(0,302,1440,24,0xffe5e6d8);
+        for(int i=0;i<8;i++) {
+            d.rect(i*180+3,305,174,18,i%2==0?0xff244f70:0xffbf6156);
+            d.text(i%2==0?"CREASE CLASH":"THE POCKET CRICKET CLUB",i*180+90,318,9,WHITE,true);
         }
-        // Dotted inner ring.
-        for(int i=0;i<70;i++) {
-            double a=i*Math.PI*2/70;
-            d.oval(cx+Math.cos(a)*252,cy+Math.sin(a)*120,1.4,1.4,0xff8aab80);
+        d.rect(0,326,1440,340,0xff428754);
+        d.oval(720,480,795,183,0xff326e49);
+        d.oval(720,480,783,177,0xffe4dfb7);
+        d.oval(720,480,777,171,0xff4b955b);
+        for(int ring=6;ring>=1;ring--) d.oval(720,480,777*ring/7.0,171*ring/7.0,ring%2==0?0xff4b955b:0xff438952);
+        for(int i=0;i<84;i++) {
+            double a=i*Math.PI*2/84;
+            d.oval(720+Math.cos(a)*420,480+Math.sin(a)*94,1.6,1.2,0xffb0c995);
         }
-        d.text("OFF SIDE",472,631,11,0xff8fb09a,false);
-        d.text("LEG SIDE",1272,631,11,0xff8fb09a,true);
-        // Square and pitch.
-        d.polygon(new double[]{cx-45,py(-23),cx+45,py(-23),cx+59,py(30),cx-59,py(30)},0xff7e946b);
-        d.polygon(new double[]{cx-25,py(-21),cx+25,py(-21),cx+33,py(27),cx-33,py(27)},0xffc9ba88);
-        d.polygon(new double[]{cx-19,py(-20),cx+19,py(-20),cx+27,py(26),cx-27,py(26)},0xffd3c291);
-        for(int i=0;i<35;i++) {
-            double y=py(-19)+i*4.5;
-            d.line(cx-15+(i%4)*5,y,cx-10+(i%4)*5,y+.5,.7,0xffb8aa7a);
+        // Perspective from behind the right-handed batter. Positive X is the off side.
+        pitchQuad(-4.8,4.8,-20,29,0xff869263);
+        pitchQuad(-3.2,3.2,-20,27,0xffd7be89);
+        pitchQuad(-2.9,2.9,-19,27,0xffe2ca97);
+        for(int i=0;i<50;i++) {
+            double y=-18+i*.88,x=(i%5-2)*.7;
+            d.line(wx(x,y),py(y),wx(x+.3,y),py(y+.09),.8,0xffb5a071);
         }
-        crease(-16,31); crease(24,39);
-        stumps(cx+5,py(-19),.85,g.lastWicket && g.result.equals("BOWLED") && g.phase==Phase.RESULT);
-        stumps(cx-7,py(26),.9,false);
-        // Keeper and distant fielders drawn first.
+        crease(-16,4.3); crease(24,4.3);
+        d.line(wx(-3.2,-20),py(-20),wx(-3.2,27),py(27),1,0xffb49a6e);
+        // Paint fielders before the closer players, clipping those outside the batting camera.
         for(int i=0;i<g.fielders.size();i++) {
             CricketGame.Fielder f=g.fielders.get(i);
-            double stride=g.phase==Phase.SHOT?Math.sin(g.animation*12+i):0;
-            player(px(f.x),py(f.y),.63,0xffed977f,stride,false,false,0);
+            double x=wx(f.x,f.y),y=py(f.y);
+            if(y<640 && y>265 && x>25 && x<1415) player(x,y,playerScale(f.y)*.77,CORAL,
+                g.phase==Phase.SHOT?Math.sin(g.animation*12+i):0,false,false,0);
         }
-        player(cx+3,py(-25),.55,0xffed977f,0,false,false,0);
-        // Automatic running shares the simulation's run interval.
+        double bowlerY=g.phase==Phase.RUNUP?43-g.clock*17:26;
+        double stride=g.phase==Phase.RUNUP?Math.sin(g.clock*19):g.phase==Phase.DELIVERY?Math.sin(g.clock*13)*.4:0;
+        double arm=g.phase==Phase.RUNUP && g.clock>.72?(g.clock-.72)/.28:g.phase==Phase.DELIVERY?Math.max(0,1-g.clock*3):0;
+        player(wx(5.2,29),py(29),playerScale(29),WHITE,0,false,false,0);
+        player(wx(-5.2,23),py(23),playerScale(23),0xff559bdf,0,true,false,0);
+        stumps(wx(0,26),py(26),playerScale(26),false);
+        player(wx(-.5,bowlerY),py(bowlerY),playerScale(bowlerY),CORAL,stride,false,false,arm);
         boolean running=g.phase==Phase.SHOT || g.phase==Phase.RETURN;
-        double runProgress=CricketGame.clamp((g.shotClock-CricketGame.RUN_REACTION)/CricketGame.RUN_SECONDS,0,3);
-        double leg=runProgress%2;
-        double runFraction=leg>1?2-leg:leg;
-        double batterY=running?CricketGame.BATTER_Y+(24-CricketGame.BATTER_Y)*runFraction:CricketGame.BATTER_Y;
-        double nonstrikerY=running?24-(24-CricketGame.BATTER_Y)*runFraction:22;
-        double runningStride=running?Math.sin(g.animation*18):0;
-        player(cx-47,py(nonstrikerY),.72,LIME,runningStride,true,false,0);
-        player(cx+61,py(32),.68,WHITE,0,false,false,0);
-        double bowlerY=26;
-        double stride=0,arm=0;
-        if(g.phase==Phase.RUNUP) { bowlerY=43-g.clock*17; stride=Math.sin(g.clock*19); arm=g.clock>.72?(g.clock-.72)/.28:0; }
-        else if(g.phase==Phase.DELIVERY) { bowlerY=26-Math.min(4,g.clock*7); stride=Math.sin(g.clock*13)*.5; arm=Math.max(0,1-g.clock*3); }
-        player(cx-3,py(bowlerY),.89,CORAL,stride,false,false,arm);
-        double swing=g.swingProgress();
-        player(cx-14,py(batterY),.9,LIME,runningStride,true,g.swung && swing<1,swing);
-        if(g.phase==Phase.DELIVERY) {
-            // Landing marker, not a timing meter: players must watch the actual ball.
-            double bx=px(g.deliveryLine*g.bounceFraction),by=py(26+(-16-26)*g.bounceFraction);
-            d.oval(bx,by,10,4,0xffbdc78a);
-            d.oval(bx,by,7,2.5,GRASS);
-        }
-        if(g.phase==Phase.DELIVERY || g.phase==Phase.SHOT || g.phase==Phase.RETURN || g.phase==Phase.RESULT) ball();
-        if(g.phase==Phase.RESULT && g.lastRuns>=4) {
-            for(int i=0;i<22;i++) {
-                double x=380+(i*71)%980,y=145+(i*53)%380+g.clock*29;
-                d.rect(x,y,3+(i%3),6,i%2==0?LIME:CORAL);
+        double run=CricketGame.clamp((g.shotClock-CricketGame.RUN_REACTION)/CricketGame.RUN_SECONDS,0,3)%2;
+        double by=running?CricketGame.BATTER_Y+40*(run>1?2-run:run):CricketGame.BATTER_Y;
+        if(g.phase==Phase.RUNUP || g.phase==Phase.DELIVERY || g.phase==Phase.READY) {
+            double y=py(-16),x=wx(0,-16);
+            d.oval(x,y,61,13,g.shotQueued?0xfffbe78e:0xff82b892);
+            d.oval(x,y,53,8,0xffd4bd89);
+            if(g.phase==Phase.DELIVERY) {
+                double bounceY=26+(-16-26)*g.bounceFraction;
+                d.oval(wx(g.deliveryLine*g.bounceFraction,bounceY),py(bounceY),17,5,0xfffde6a2);
             }
         }
+        double swing=g.swingProgress();
+        player(wx(-2.7,by),py(by),playerScale(by),0xff559bdf,
+            running?Math.sin(g.animation*18):0,true,g.swung && swing<1,swing);
+        stumps(wx(0,-17.2),py(-17.2),playerScale(-17.2)*.85,g.lastWicket && g.result.equals("BOWLED") && g.phase==Phase.RESULT);
+        if(g.phase==Phase.DELIVERY || g.phase==Phase.SHOT || g.phase==Phase.RETURN || g.phase==Phase.RESULT) ball();
+        if(g.phase==Phase.RESULT && g.lastRuns>=4) for(int i=0;i<44;i++) {
+            double x=55+(i*71)%1330,y=234+(i*53)%330+g.clock*24;
+            d.rect(x,y,3+(i%4),7,i%2==0?LIME:CORAL);
+        }
+        d.rect(0,654,1440,156,BG);
+        d.text("ON SIDE / LEG",61,671,13,LIME,false);
+        d.text("RIGHT-HANDED BATTER",720,671,10,MUTED,true);
+        d.text("OFF SIDE",1325,671,13,LIME,true);
+    }
+    private static int mix(int a,int b,double t) {
+        int r=(int)(((a>>16)&255)*(1-t)+((b>>16)&255)*t);
+        int g=(int)(((a>>8)&255)*(1-t)+((b>>8)&255)*t);
+        int bl=(int)((a&255)*(1-t)+(b&255)*t);
+        return 0xff000000|(r<<16)|(g<<8)|bl;
+    }
+    private void pitchQuad(double left,double right,double near,double far,int color) {
+        d.polygon(new double[]{wx(left,near),py(near),wx(right,near),py(near),wx(right,far),py(far),wx(left,far),py(far)},color);
     }
     private void floodlight(double x,double y) {
-        d.line(x,y,x,y+52,4,0xff70877b);
-        d.roundRect(x-25,y-10,50,19,4,0xff5b7668);
-        for(int i=0;i<5;i++) d.rect(x-20+i*9,y-6,5,9,0xffc9d6a6);
+        d.polygon(new double[]{x-34,y+11,x+34,y+11,x+115,330,x-115,330},0x0dfef4ce);
+        d.line(x,y,x,302,5,0xff7c929b);
+        d.line(x+7,y,x+7,302,2,0xff30495c);
+        d.roundRect(x-36,y-12,72,29,5,0xff496276);
+        for(int row=0;row<2;row++) for(int i=0;i<6;i++) d.roundRect(x-30+i*10,y-7+row*11,7,8,2,0xfffff3cf);
     }
-    private void crease(double worldY,double width) {
-        double y=py(worldY);
-        d.line(cx-width,y,cx+width,y,2,WHITE);
-        d.line(cx-25,y-9,cx-25,y+13,1.5,WHITE);
-        d.line(cx+25,y-9,cx+25,y+13,1.5,WHITE);
+    private void crease(double y,double width) {
+        d.line(wx(-width,y),py(y),wx(width,y),py(y),2.2,WHITE);
+        for(int side:new int[]{-1,1}) d.line(wx(side*2.7,y-1.2),py(y-1.2),wx(side*2.7,y+2),py(y+2),1.8,WHITE);
     }
     private void stumps(double x,double y,double s,boolean broken) {
         for(int i=0;i<3;i++) d.line(x+(i-1)*5*s,y,x+(i-1)*5*s+(broken?(i-1)*14:0),y-22*s,2.8*s,WHITE);
@@ -137,7 +157,7 @@ public final class GameRenderer {
         else { d.line(x-13,y-26,x-7,y-30,2,WHITE); d.line(x+14,y-21,x+20,y-18,2,WHITE); }
     }
     private void player(double x,double y,double s,int shirt,double stride,boolean batter,boolean swinging,double arm) {
-        d.oval(x,y+2,14*s,4*s,0xff355c4a);
+        d.oval(x+8*s,y+3,23*s,5*s,0x50304028);
         double hipY=y-22*s,shoulderY=y-43*s;
         d.line(x,hipY,x-9*s-stride*4*s,y-2*s,5*s,INK);
         d.line(x,hipY,x+9*s+stride*4*s,y-2*s,5*s,INK);
@@ -147,10 +167,17 @@ public final class GameRenderer {
         }
         d.line(x-11*s-stride*4*s,y,x-3*s-stride*4*s,y,4*s,WHITE);
         d.line(x+5*s+stride*4*s,y,x+13*s+stride*4*s,y,4*s,WHITE);
-        d.line(x,shoulderY,x,hipY,13*s,shirt);
+        d.line(x,shoulderY,x,hipY,15*s,INK);
+        d.line(x,shoulderY,x,hipY,12*s,shirt);
+        d.line(x+3*s,shoulderY+3*s,x+3*s,hipY-2*s,2*s,batter?0xff7ab6e4:0xfff5b391);
+        d.line(x-6*s,hipY,x+6*s,hipY,2*s,batter?LIME:WHITE);
+        if(batter) { d.text("07",x,y-28*s,7*s,WHITE,true); }
         d.oval(x,y-55*s,8*s,8*s,0xffedc294);
         if(batter) {
-            d.oval(x,y-59*s,9*s,6*s,INK);
+            d.oval(x,y-59*s,9*s,7*s,0xff234772);
+            d.oval(x-3*s,y-61*s,4*s,2*s,0xff5385b1);
+            d.line(x+3*s,y-53*s,x+10*s,y-50*s,1*s,0xffd1e0e2);
+            d.line(x+3*s,y-50*s,x+9*s,y-47*s,1*s,0xffd1e0e2);
             d.line(x+4*s,y-55*s,x+11*s,y-55*s,3*s,INK);
             double handX=x+13*s,handY=y-33*s;
             if(swinging) {
@@ -159,7 +186,11 @@ public final class GameRenderer {
                 handY=y-36*s+Math.sin(a)*11*s;
                 double tipX=handX+Math.cos(a)*29*s*g.shotSide,tipY=handY+Math.sin(a)*29*s;
                 d.line(handX,handY,tipX,tipY,7*s,0xffedd09b);
-            } else d.line(handX+3*s,handY,handX+10*s,y-4*s,7*s,0xffedd09b);
+            } else {
+                d.line(handX+3*s,handY,handX+10*s,y-4*s,8*s,0xffb88e56);
+                d.line(handX+4*s,handY+5*s,handX+10*s,y-6*s,5*s,0xfff5ddaa);
+                d.line(handX+3*s,handY-4*s,handX+5*s,handY+6*s,3*s,INK);
+            }
             d.line(x-4*s,shoulderY+4*s,handX,handY,4.5*s,shirt);
             d.line(x+4*s,shoulderY+4*s,handX,handY,4.5*s,shirt);
             d.oval(handX,handY,4*s,4*s,WHITE);
@@ -169,78 +200,74 @@ public final class GameRenderer {
         }
     }
     private void ball() {
-        double x=px(g.ballX),ground=py(g.ballY),y=ground-g.ballZ*10.8;
-        d.oval(x,ground+2,4+g.ballZ*.35,2.2,0xff294e42);
-        if(g.phase==Phase.SHOT) {
-            for(int i=4;i>=1;i--) {
-                double tx=x-g.velocityX*sx*.012*i,ty=y-(g.velocityY*sy-g.velocityZ*10.8)*.012*i;
-                d.oval(tx,ty,Math.max(1,4-i*.6),Math.max(1,4-i*.6),0xffbed28b);
-            }
-        } else if(g.phase==Phase.DELIVERY) d.line(x,y+5,x,y+17,3,0xffe4c898);
-        d.oval(x,y,7.3,7.3,INK); d.oval(x,y,5.7,5.7,0xfffff8e5);
-        d.line(x-2,y+2,x+2,y-2,1.6,CORAL);
+        double x=wx(g.ballX,g.ballY),ground=py(g.ballY),height=10.8*wide+15*(1-wide);
+        double y=ground-g.ballZ*height;
+        double r=g.phase==Phase.DELIVERY?6+6*CricketGame.clamp(g.deliveryProgress(),0,1):7;
+        d.oval(x+3,ground+3,r*.85,3.4,0x80304e32);
+        if(g.phase==Phase.DELIVERY) {
+            d.line(x,y-32,x,y-9,4,0x90fff1bd);
+            d.oval(x,y,r+6,r+6,0x38fff1bd);
+        } else if(g.phase==Phase.SHOT) for(int i=5;i>=1;i--) {
+            double wx=g.ballX-g.velocityX*.016*i,wy=g.ballY-g.velocityY*.016*i;
+            d.oval(wx(wx,wy),py(wy)-(g.ballZ-g.velocityZ*.016*i)*height,4-i*.5,4-i*.5,0xffe4e3a2);
+        }
+        d.oval(x,y,r+2,r+2,INK); d.oval(x,y,r,r,0xfffffaf0);
+        d.line(x-r*.35,y+r*.65,x+r*.35,y-r*.65,2,CORAL);
+        d.oval(x-r*.3,y-r*.4,2,2,0xffffffff);
     }
     private void scoreboard() {
-        d.roundRect(40,137,272,511,23,PANEL);
-        d.text(g.practice?"PRACTICE NETS":"THE CHASE",64,174,13,LIME,false);
-        d.text(Integer.toString(g.runs),63,255,72,WHITE,false);
-        d.text("/ "+g.wickets,190,250,28,MUTED,false);
-        d.text("RUNS",65,281,11,MUTED,false);
-        d.text("WICKETS",190,281,11,MUTED,false);
-        d.line(64,302,288,302,1,0xff3b5450);
-        d.text(g.practice?"OVERS BOWLED":"OVERS",64,331,11,MUTED,false);
-        d.text(g.overs()+(g.practice?"":" / 2"),64,363,25,WHITE,false);
-        if(!g.practice) {
-            d.text("TARGET",217,331,11,MUTED,false);
-            d.text(Integer.toString(g.difficulty.target),217,363,25,LIME,false);
-        }
-        d.roundRect(62,387,228,88,14,0xff25433d);
-        if(g.practice) {
-            d.text("NO BALL LIMIT",176,420,17,LIME,true);
-            d.text("Learn the bounce. Find your timing.",176,449,10,WHITE,true);
-        } else {
-            d.text(g.needed()+" FROM "+g.ballsLeft(),176,423,26,LIME,true);
-            d.text("RUNS NEEDED / BALLS LEFT",176,451,10,MUTED,true);
-        }
-        d.text("LAST SIX BALLS",64,511,11,MUTED,false);
+        d.roundRect(40,123,375,104,18,0xff1e3348);
+        d.text(g.practice?"PRACTICE":"THE CHASE",61,148,11,LIME,false);
+        d.text(g.runs+" / "+g.wickets,60,199,43,WHITE,false);
+        d.text("OVERS",250,163,10,MUTED,false);
+        d.text(g.overs()+(g.practice?"":" / 2"),250,196,24,WHITE,false);
+        d.roundRect(1025,123,375,104,18,0xff1e3348);
+        d.text(g.practice?"UNLIMITED BALLS":g.needed()+" RUNS FROM "+g.ballsLeft()+" BALLS",1047,151,15,LIME,false);
         int start=Math.max(0,g.history.size()-6);
         for(int i=0;i<6;i++) {
             String value=start+i<g.history.size()?g.history.get(start+i):"-";
             int color=value.equals("W")?CORAL:value.equals("4")||value.equals("6")?LIME:WHITE;
-            d.oval(78+i*36,541,14,14,value.equals("-")?0xff234145:color);
-            d.text(value,78+i*36,546,12,value.equals("-")?MUTED:INK,true);
+            d.oval(1067+i*55,191,17,17,value.equals("-")?0xff354a5b:color);
+            d.text(value,1067+i*55,197,14,value.equals("-")?MUTED:INK,true);
         }
-        d.text("YOUR BEST CHASE SCORE",64,595,10,MUTED,false);
-        d.text(session.best+" RUNS",64,622,20,WHITE,false);
-        d.text("READ THE BALL. TRUST YOUR TIMING.",40,792,11,MUTED,false);
     }
     private void controls() {
-        boolean active=g.phase==Phase.DELIVERY && !g.swung;
-        button(344,682,276,92,"LEFT SHOT","OFF SIDE",active?LIME:0xff35504b,active?INK:WHITE);
-        button(1116,682,276,92,"RIGHT SHOT","LEG SIDE",active?LIME:0xff35504b,active?INK:WHITE);
-        String center=g.phase==Phase.READY?"BOWL":g.phase==Phase.RUNUP?"GET READY":g.phase==Phase.DELIVERY?"WATCH IT":g.phase==Phase.RESULT?"NEXT BALL...":"IN PLAY";
-        button(658,682,242,92,center,g.phase==Phase.READY?"TAP TO FACE A DELIVERY":"",g.phase==Phase.READY?LIME:PANEL,g.phase==Phase.READY?INK:MUTED);
-        button(928,682,160,92,g.lofted?"LOFT":"GROUND","TAP TO SWITCH",g.lofted?CORAL:PANEL,g.lofted?INK:WHITE);
-        d.text("Choose a side. Tap as the ball reaches the bat.",869,803,11,MUTED,true);
+        boolean club=g.difficulty==CricketGame.Difficulty.CLUB;
+        boolean active=!g.swung && (g.phase==Phase.DELIVERY || club && (g.phase==Phase.RUNUP || g.phase==Phase.READY));
+        boolean left=g.shotQueued && g.shotSide<0,right=g.shotQueued && g.shotSide>0;
+        button(40,682,420,100,left?"LEFT SHOT READY":"HIT LEFT",club?"ON SIDE / AUTO TIMING":"ON SIDE / TAP TO HIT",left?LIME:active?0xff7ccce0:PANEL,active?INK:WHITE);
+        button(980,682,420,100,right?"RIGHT SHOT READY":"HIT RIGHT",club?"OFF SIDE / AUTO TIMING":"OFF SIDE / TAP TO HIT",right?LIME:active?0xff7ccce0:PANEL,active?INK:WHITE);
+        String center=g.phase==Phase.READY?"BOWL":g.shotQueued?"READY!":g.phase==Phase.RUNUP?"GET READY":g.phase==Phase.DELIVERY?"CHOOSE SHOT":g.phase==Phase.RESULT?"NEXT BALL":"IN PLAY";
+        button(490,682,200,100,center,g.phase==Phase.READY?"OR TAP A SHOT":"",g.phase==Phase.READY?LIME:PANEL,g.phase==Phase.READY?INK:MUTED);
+        button(720,682,230,100,g.lofted?"LOFTED SHOT":"GROUND SHOT","TAP TO CHANGE",g.lofted?CORAL:PANEL,g.lofted?INK:WHITE);
+        d.text(club?"CLUB ASSIST: tap either shot early. Your batter handles the timing.":"PRO / ELITE: tap when the ball reaches the yellow crease.",720,803,12,MUTED,true);
     }
     private void liveCaption() {
-        String title,sub;
-        int color=WHITE;
+        String title,sub; int color=WHITE;
+        boolean club=g.difficulty==CricketGame.Difficulty.CLUB;
         switch(g.phase) {
-            case READY: title="YOUR CREASE. YOUR CALL."; sub="Choose ground or loft. Tap BOWL when ready."; break;
-            case RUNUP: title=g.deliveryName; sub="Watch the release, then the bounce."; break;
-            case DELIVERY: title=g.swung?g.timing:"WATCH THE BALL"; sub=g.swung?"One swing per delivery.":"Tap LEFT or RIGHT as it reaches your bat."; break;
-            case SHOT: title=g.timing; sub=g.detail; color=g.timing.equals("PERFECT")?LIME:WHITE; break;
-            case RETURN: title="COMING BACK IN"; sub="The fielders are returning the ball."; break;
-            case RESULT: title=g.result; sub=g.detail; color=g.lastWicket?CORAL:g.lastRuns>=4?LIME:WHITE; break;
+            case READY: title=club?"TAP LEFT OR RIGHT TO PLAY":"READY FOR THE NEXT BALL?"; sub=club?"Choose a shot. Timing is automatic in Club.":"Tap BOWL. Watch the ball reach the yellow crease."; break;
+            case RUNUP: case DELIVERY:
+                title=g.shotQueued?"SHOT READY - WATCH IT FLY":club?"CHOOSE LEFT OR RIGHT":g.phase==Phase.DELIVERY && g.deliveryProgress()>.82?"HIT NOW!":"WATCH THE BALL";
+                sub=g.shotQueued?"Tap the other side to change your shot.":club?"Tap now. You do not need to wait for the ball.":g.timing.isEmpty()?"Aim for the yellow crease. Early taps can be retried.":g.timing;
+                color=g.shotQueued?LIME:WHITE; break;
+            case SHOT: title=g.timing; sub=g.detail; color=LIME; break;
+            case RETURN: title="RUNNING BETWEEN WICKETS"; sub="Running and fielding happen automatically."; break;
+            case RESULT: title=g.result; sub=g.detail; color=g.lastWicket?CORAL:LIME; break;
             default: return;
         }
-        d.roundRect(605,128,490,63,15,0xee19363a);
-        d.text(title,850,156,20,color,true);
-        d.text(sub,850,178,11,MUTED,true);
+        d.roundRect(438,123,564,104,18,0xff1e3348);
+        d.text(title,720,164,22,color,true);
+        d.text(sub,720,195,12,MUTED,true);
+        if(g.phase==Phase.DELIVERY) {
+            double t=CricketGame.clamp(g.deliveryProgress(),0,1);
+            d.roundRect(555,240,330,8,4,0xff294657);
+            d.roundRect(555,240,Math.max(8,330*t),8,4,g.shotQueued?LIME:0xff7ccce0);
+        }
         if(g.phase==Phase.RESULT && (g.lastRuns>=4 || g.lastWicket)) {
-            d.roundRect(719,542,262,79,18,0xf010292d);
-            d.text(g.lastWicket?"W":Integer.toString(g.lastRuns),850,601,57,color,true);
+            d.roundRect(618,485,204,128,20,0xee101e32);
+            d.text(g.lastWicket?"W":Integer.toString(g.lastRuns),720,574,85,color,true);
+            d.text(g.lastWicket?"WICKET":"BOUNDARY",720,599,12,LIME,true);
         }
     }
     private void menu() {
@@ -250,7 +277,7 @@ public final class GameRenderer {
         d.text("Two overs.",72,275,58,WHITE,false);
         d.text("One chase.",72,341,58,LIME,false);
         d.text("Pick your shot. Find the gap.",76,384,18,WHITE,false);
-        d.text("Make the last ball count.",76,411,18,MUTED,false);
+        d.text("Club mode handles the timing for you.",76,411,18,MUTED,false);
         d.roundRect(76,431,445,52,13,PANEL);
         d.text("DIFFICULTY",95,462,12,MUTED,false);
         d.text(session.selected.label+"  /  "+session.selected.target+" TO WIN",362,463,15,LIME,true);
@@ -267,8 +294,8 @@ public final class GameRenderer {
         d.line(1108,270,1135,236,3,CORAL);
         for(int i=0;i<5;i++) d.line(1110+i*5,262-i*6,1116+i*5,266-i*6,1.5,CORAL);
         d.roundRect(970,576,313,59,16,0xee19363a);
-        d.text("SIMPLE CONTROLS. REAL CONSEQUENCES.",1127,612,11,LIME,true);
-        d.text("ORIGINAL ARCADE CRICKET / FIRST PLAYABLE",40,780,11,MUTED,false);
+        d.text("TAP EARLY. HIT BIG.",1127,612,11,LIME,true);
+        d.text("ORIGINAL ARCADE CRICKET / BATTING UPDATE",40,780,11,MUTED,false);
         d.text("JAVA + LIBGDX",1260,780,11,MUTED,false);
     }
     private void button(double x,double y,double w,double h,String title,String subtitle,int background,int foreground) {
@@ -300,10 +327,10 @@ public final class GameRenderer {
     private void help() {
         dim(); d.roundRect(352,159,736,534,26,BG);
         d.text("MAKE EVERY BALL COUNT",720,214,29,LIME,true);
-        String[][] rows={{"01","WATCH THE BOUNCE","Tap as the ball reaches the batter at the far end of the pitch."},
-            {"02","PICK YOUR SIDE","LEFT hits to the off side. RIGHT hits to the leg side."},
+        String[][] rows={{"01","START WITH CLUB","Tap HIT LEFT or HIT RIGHT to bowl and prepare your shot."},
+            {"02","PICK YOUR SIDE","Behind the batter: LEFT is on / leg side. RIGHT is off side."},
             {"03","CHOOSE YOUR RISK","GROUND finds gaps. LOFT can clear the rope or get caught."},
-            {"04","ONE TAP. ONE SHOT.","Early and late swings lose power. Holding a button does not repeat."},
+            {"04","EASY CONTACT","In Club, tap early: contact is automatic. Pro and Elite use timing."},
             {"05","CHASE THE TARGET","Twelve balls, three wickets. Fielding and running are automatic."}};
         for(int i=0;i<rows.length;i++) {
             double y=268+i*71;
@@ -313,6 +340,8 @@ public final class GameRenderer {
         }
         d.text("TAP ANYWHERE TO CLOSE",720,661,12,LIME,true);
     }
-    private double px(double x) { return cx+x*sx; }
-    private double py(double y) { return cy+y*sy; }
+    private double depth(double y) { return 1/(1+Math.max(-6,y+16)*.027); }
+    private double wx(double x,double y) { return cx+x*(17*depth(y)*(1-wide)+sx*wide); }
+    private double py(double y) { return (625-(y+16)*14*depth(y))*(1-wide)+(cy+y*sy)*wide; }
+    private double playerScale(double y) { return 2.48*depth(y)*(1-wide)+.78*wide; }
 }

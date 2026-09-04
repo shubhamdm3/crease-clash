@@ -20,6 +20,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Install Android SDK
         run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Reuse development signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: crease-clash-debug-keystore-v1
       - name: Verify simulation and build APK
         run: |
           chmod +x gradlew
