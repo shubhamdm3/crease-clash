@@ -70,6 +70,12 @@ wait_event('event=hit side=1')
 capture('07-right-contact')
 wait_event('event=ready', count=3)
 capture('08-two-balls-played')
+events = adb('logcat', '-d', '-s', 'CreaseClash:I', '*:S')
+hits = [line for line in events.splitlines() if 'event=hit ' in line]
+assert len(hits) == 2, events
+assert all('grade=ASSISTED' in line and 'sixEligible=false' in line for line in hits), events
+assert 'lastRuns=6' not in events, 'Early queued shots must never score six'
+
 tap(1359, 55)  # Pause
 time.sleep(.4)
 capture('09-pause')
@@ -84,5 +90,5 @@ assert pid, 'Game process stopped during the smoke test'
 logs = adb('logcat', '-d', f'--pid={pid}')
 (OUT/'app-logcat.txt').write_text(logs)
 assert 'FATAL EXCEPTION' not in logs, logs
-(OUT/'result.txt').write_text(f'PASS: APK installed and launched; real early LEFT and RIGHT touch inputs each connected, both balls resolved, and the app survived background/resume.\nResolution: {width}x{height}\nPhysical haptic feel and OnePlus latency are not tested by an emulator.\n')
+(OUT/'result.txt').write_text(f'PASS: APK installed and launched; real early LEFT and RIGHT touch inputs each connected, both were ASSISTED with no six eligibility, neither scored six, both balls resolved, and the app survived background/resume.\nResolution: {width}x{height}\nPhysical haptic feel and OnePlus latency are not tested by an emulator.\n')
 print((OUT/'result.txt').read_text())

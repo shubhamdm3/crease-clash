@@ -31,7 +31,7 @@ public final class RulesTest {
     private static void placeShot(CricketGame g,double x,double y,double z,boolean bounced) {
         g.phase=Phase.SHOT; g.ballX=x; g.ballY=y; g.ballZ=z;
         g.velocityX=0; g.velocityY=0; g.velocityZ=0;
-        g.grounded=bounced; g.shotClock=.4; g.clock=.4;
+        g.grounded=bounced; g.shotClock=.4; g.clock=.4; g.sixEligible=!bounced;
     }
     public static void main(String[] args) {
         CricketGame g=fresh(8); delivery(g); g.update(.2);
@@ -57,7 +57,7 @@ public final class RulesTest {
             int guard=0; while(g.phase!=Phase.SHOT && guard++<700) g.update(STEP);
             check(g.phase==Phase.SHOT && g.hits==1,"Queued Club input produces real contact");
             check(Math.signum(g.velocityX)==side && g.velocityY>0,"Shot goes to selected screen side and down the pitch");
-            check(g.timing.equals("CLEAN HIT") && g.quality==1,"Club removes timing and line penalties");
+            check(g.timingGrade==Timing.ASSISTED && g.quality<=.38 && !g.sixEligible,"Early assistance cannot grant perfect power");
             untilResult(g); check(!g.lastWicket,"Assisted ground shot stays safe");
         }
         g=fresh(2); g.swing(-1); g.swing(1);
@@ -66,7 +66,7 @@ public final class RulesTest {
         check(g.shotQueued && g.clock==queuedClock,"Pause retains the queued shot without advancing");
         g.start(true,Difficulty.CLUB); check(!g.shotQueued,"Restart clears queued input");
         delivery(g); g.lofted=true; ideal(g);
-        check(g.timing.equals("CLEAN HIT") && g.quality==1,"Club contact is assisted");
+        check(g.timingGrade==Timing.PERFECT && g.quality==1,"A manually timed Club shot earns perfect power");
         untilResult(g);
 
         g=fresh(4); placeShot(g,61.9,0,5,false); g.velocityX=30;
@@ -128,6 +128,49 @@ public final class RulesTest {
         check(s.game.shotQueued && s.game.shotSide==-1,"Left touch queues on-side shot");
         s.tap(1180,730); check(s.game.shotSide==1,"Right touch changes to off-side");
         untilResult(s.game); check(s.game.hits==1 && s.game.runs>0,"Touch controls score runs without precision timing");
+
+        // Regression: v0.2 auto-promoted every queued loft to maximum power.
+        for(int seed=0;seed<100;seed++) for(int side:new int[]{-1,1}) {
+            g=fresh(seed*982451653L); g.lofted=true; g.swing(side);
+            untilResult(g);
+            check(g.hits==1 && g.timingGrade==Timing.ASSISTED,"Early loft still makes contact");
+            check(g.lastRuns!=6 && !g.sixEligible,"Queued loft NEVER becomes six");
+            check(g.lastRuns<4 || g.grounded,"Assisted boundary must actually bounce first");
+        }
+        g=fresh(33); g.lofted=true; g.swing(-1);
+        while(g.phase!=Phase.DELIVERY) g.update(STEP);
+        while(g.clock<g.deliveryDuration-.025) g.update(STEP);
+        check(g.swing(g.deliveryLine<0?-1:1),"Can replace an early queued shot with a timed tap");
+        check(g.timingGrade==Timing.PERFECT && g.sixEligible,"Timed correction can earn six eligibility");
+
+        g=fresh(33); g.lofted=true; g.swing(-1);
+        while(g.phase!=Phase.DELIVERY) g.update(STEP);
+        while(g.clock<g.deliveryDuration+.025) g.update(STEP);
+        check(g.shotQueued && g.swing(g.deliveryLine<0?-1:1),"Late half of perfect zone can override saved contact");
+        check(g.timingGrade==Timing.PERFECT && g.sixEligible,"Perfect correction works on both sides of arrival");
+
+        Map<String,int[]> balance=new TreeMap<>();
+        for(Difficulty diff:Difficulty.values()) for(int seed=0;seed<30;seed++) for(int offset=-24;offset<=24;offset++) {
+            g=fresh(seed*982451653L); g.start(true,diff); delivery(g); g.lofted=true;
+            double requested=offset*diff.window/25;
+            while(g.clock<g.deliveryDuration+requested) g.update(STEP);
+            g.swing(seed%2==0?1:-1);
+            Timing grade=g.timingGrade;
+            untilResult(g);
+            check(g.lastRuns!=6 || grade==Timing.PERFECT,"Every six requires a manually perfect tap, all difficulties");
+            check(grade==Timing.PERFECT || g.lastRuns<4 || g.grounded,"Imperfect loft lands before a boundary");
+            int[] counts=balance.computeIfAbsent(grade.name(),k->new int[3]); counts[0]++; counts[1]+=g.lastRuns; if(g.lastRuns==6) counts[2]++;
+        }
+        check(balance.get("PERFECT")[2]>0,"Perfect timing can still produce sixes");
+        for(int seed=0;seed<50;seed++) {
+            g=fresh(seed*982451653L); g.lofted=true; g.bowl();
+            for(int tick=0;tick<1000 && g.phase!=Phase.SHOT;tick++) {
+                if(tick%6==0) g.swing(1); g.update(STEP);
+            }
+            untilResult(g); check(g.lastRuns!=6,"Rapid tapping cannot farm perfect sixes");
+        }
+        System.out.println("4,410-loft timing sweep (shots / runs / sixes):");
+        for(Map.Entry<String,int[]> e:balance.entrySet()) System.out.println(e.getKey()+" "+Arrays.toString(e.getValue()));
 
         Map<String,Integer> outcomes=new TreeMap<>();
         for(Difficulty difficulty:Difficulty.values()) for(int seed=0;seed<120;seed++) {

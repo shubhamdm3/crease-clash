@@ -31,7 +31,7 @@ public final class CreaseApp extends ApplicationAdapter {
             public int readInt(String key,int fallback) { return preferences.getInteger(key,fallback); }
             public void writeInt(String key,int value) { preferences.putInteger(key,value); preferences.flush(); }
             public void sound(String event) { Sound sound=sounds.get(event); if(sound!=null) sound.play(event.equals("release")?.2f:.6f); }
-            public void event(String event) { Gdx.app.log("CreaseClash", "event="+event+" side="+session.game.shotSide+" runs="+session.game.runs+" balls="+session.game.balls); }
+            public void event(String event) { Gdx.app.log("CreaseClash", "event="+event+" side="+session.game.shotSide+" runs="+session.game.runs+" balls="+session.game.balls+" grade="+session.game.timingGrade+" sixEligible="+session.game.sixEligible+" lastRuns="+session.game.lastRuns); }
             public void vibrate(String event) { haptics.pulse(event); }
         });
         Gdx.input.setCatchKey(Input.Keys.BACK,true);

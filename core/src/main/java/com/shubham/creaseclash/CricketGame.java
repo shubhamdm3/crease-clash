@@ -7,8 +7,9 @@ import java.util.Random;
 /** Pure Java, deterministic cricket simulation. All positions are arcade field units. */
 public final class CricketGame {
     public enum Phase { MENU, READY, RUNUP, DELIVERY, SHOT, RETURN, RESULT, MATCH_OVER }
+    public enum Timing { NONE, ASSISTED, EARLY, GOOD, PERFECT, LATE }
     public enum Difficulty {
-        CLUB("CLUB", 24, .32, .10, 1.85),
+        CLUB("CLUB", 24, .24, .050, 1.85),
         PRO("PRO", 32, .135, .035, 1.33),
         ELITE("ELITE", 42, .105, .027, 1.12);
         public final String label;
@@ -42,6 +43,9 @@ public final class CricketGame {
     public double timingError, quality, shotClock, returnDuration;
     public String timing="", result="", detail="", deliveryName="";
     public int catcher=-1;
+    public Timing timingGrade=Timing.NONE;
+    public boolean sixEligible;
+    private double queuedError;
     private double accumulator;
     private double ballPreviousZ;
 
@@ -66,7 +70,7 @@ public final class CricketGame {
     public void bowl() {
         if(phase!=Phase.READY || paused) return;
         phase=Phase.RUNUP; clock=0; swung=false; shotQueued=false; swingAt=-99; catcher=-1;
-        timing=""; result=""; lastWicket=false; lastRuns=0;
+        timing=""; timingGrade=Timing.NONE; sixEligible=false; queuedError=0; result=""; lastWicket=false; lastRuns=0;
         deliveryLine=(random.nextDouble()*2-1)*2.65;
         bounceFraction=.54+random.nextDouble()*.2;
         bounceHeight=.55+random.nextDouble()*.85;
@@ -78,24 +82,21 @@ public final class CricketGame {
     public void toggleLoft() {
         if(!paused && phase!=Phase.SHOT && phase!=Phase.RETURN && phase!=Phase.RESULT) lofted=!lofted;
     }
-    /** Club accepts a direction throughout the run-up; contact is timed by the assist. */
+    /** Early Club input saves weak contact; only a fresh, well-timed tap earns full power. */
     public boolean swing(int side) {
         if(paused || swung) return false;
-        if(difficulty==Difficulty.CLUB) {
-            if(phase==Phase.READY) bowl();
-            if(phase!=Phase.RUNUP && phase!=Phase.DELIVERY) return false;
-            shotSide=side<0?-1:1; shotQueued=true; timing="SHOT READY";
+        boolean club=difficulty==Difficulty.CLUB;
+        if(club && phase==Phase.READY) bowl();
+        if(phase!=Phase.DELIVERY && !(club && phase==Phase.RUNUP)) return false;
+        shotSide=side<0?-1:1;
+        double error=phase==Phase.RUNUP?clock-1-deliveryDuration:clock-deliveryDuration;
+        if(club && error < -difficulty.window) {
+            shotQueued=true; queuedError=error; timing="EARLY SHOT SAVED";
             feedback.emit("queued");
-            if(phase==Phase.DELIVERY && clock>=deliveryDuration) connect(true);
             return true;
         }
-        if(phase!=Phase.DELIVERY) return false;
-        shotSide=side<0?-1:1;
-        timingError=clock-deliveryDuration;
-        // A premature tap gives feedback but never locks out a later correction.
-        if(Math.abs(timingError)>difficulty.window) {
-            swingAt=animation;
-            timing=timingError<0?"EARLY - TAP AGAIN":"TOO LATE";
+        if(Math.abs(error)>difficulty.window) {
+            timing=error<0?"EARLY - TAP AGAIN":"TOO LATE";
             return false;
         }
         connect(false);
@@ -103,19 +104,35 @@ public final class CricketGame {
     }
     private void connect(boolean assisted) {
         swung=true; shotQueued=false; swingAt=animation; hits++;
-        timingError=assisted?0:clock-deliveryDuration;
-        double normalized=Math.abs(timingError)/difficulty.window;
-        quality=1-.70*normalized;
+        timingError=assisted?queuedError:clock-deliveryDuration;
+        double error=Math.abs(timingError);
+        timingGrade=assisted?Timing.ASSISTED:error<=difficulty.perfect?Timing.PERFECT:
+            error<=difficulty.window*.55?Timing.GOOD:timingError<0?Timing.EARLY:Timing.LATE;
+        double normalized=clamp(error/difficulty.window,0,1);
+        quality=assisted?.38:timingGrade==Timing.PERFECT?1:Math.min(.78,1-.72*normalized);
         boolean wrongSide=Math.abs(deliveryLine)>1.1 && Math.signum(deliveryLine)!=shotSide;
-        if(wrongSide && !assisted) quality*=.72;
-        timing=assisted?"CLEAN HIT":Math.abs(timingError)<=difficulty.perfect?"PERFECT":timingError<0?"EARLY":"LATE";
-        detail=wrongSide && !assisted?"Across the line - less control":lofted?"Aerial shot - watch the field":"Along the ground - find the gap";
-        double angle=Math.toRadians(53+timingError/difficulty.window*27+deliveryLine*2);
+        if(wrongSide) quality*=.78;
+        timing=timingGrade.name();
+        sixEligible=lofted && timingGrade==Timing.PERFECT;
+        detail=assisted?"Early tap saved contact. Time your next shot for power.":
+            wrongSide?"Across the line - less power":sixEligible?"Perfect loft! Beat the field to clear the rope.":
+            lofted?"Mistimed loft - it will land inside the rope.":"Ground shot - find the gap.";
+        double direction=assisted?-.35:clamp(timingError/difficulty.window,-1,1);
+        double angle=Math.toRadians(53+direction*27+deliveryLine*2);
         double speed=lofted?23+quality*21:12+quality*30;
-        velocityX=shotSide*Math.sin(angle)*speed;
-        velocityY=Math.cos(angle)*speed;
         velocityZ=lofted?5+quality*11:1.4;
         ballX=deliveryLine; ballY=BATTER_Y; ballZ=lofted?.9:.25;
+        // Non-perfect lofts physically land inside the boundary, rather than showing a
+        // six trajectory and relabelling it as four. Drag only shortens this upper bound.
+        if(!sixEligible) {
+            double ux=shotSide*Math.sin(angle),uy=Math.cos(angle);
+            double dot=ballX*ux+ballY*uy;
+            double ropeDistance=-dot+Math.sqrt(dot*dot+RADIUS*RADIUS-ballX*ballX-ballY*ballY);
+            double airTime=(velocityZ+Math.sqrt(velocityZ*velocityZ+2*GRAVITY*ballZ))/GRAVITY;
+            speed=Math.min(speed,(ropeDistance-8)/airTime);
+        }
+        velocityX=shotSide*Math.sin(angle)*speed;
+        velocityY=Math.cos(angle)*speed;
         ballPreviousZ=ballZ;
         grounded=false; shotClock=0; clock=0; phase=Phase.SHOT;
         feedback.emit("hit");
@@ -143,7 +160,7 @@ public final class CricketGame {
                 }
                 if(ballPreviousZ>.04 && ballZ<=.04 && t<.85) feedback.emit("bounce");
                 ballPreviousZ=ballZ;
-                if(shotQueued && clock>=deliveryDuration) { connect(true); break; }
+                if(shotQueued && clock>deliveryDuration+difficulty.perfect) { connect(true); break; }
                 if(clock>deliveryDuration+difficulty.window) {
                     if(!swung) timing="MISSED";
                     boolean bowled=Math.abs(deliveryLine)<1.12;
@@ -186,7 +203,7 @@ public final class CricketGame {
             double oldR=Math.hypot(oldX,oldY), newR=Math.hypot(ballX,ballY);
             double fraction=clamp((RADIUS-oldR)/Math.max(.0001,newR-oldR),0,1);
             double crossingZ=ballPreviousZ+(ballZ-ballPreviousZ)*fraction;
-            boolean six=!grounded && (!hitGround || crossingZ>.02);
+            boolean six=sixEligible && !grounded && (!hitGround || crossingZ>.02);
             finish(six?6:4,false,six?"SIX!":"FOUR!",six?"All the way. Cleared the rope.":"Found the gap. Away to the boundary.");
             return;
         }
@@ -237,7 +254,7 @@ public final class CricketGame {
         feedback.emit(wicket?"wicket":awarded>=4?"boundary":"run");
     }
     private void ready() {
-        phase=Phase.READY; clock=0; swung=false; shotQueued=false; swingAt=-99;
+        phase=Phase.READY; clock=0; swung=false; shotQueued=false; sixEligible=false; timingGrade=Timing.NONE; queuedError=0; swingAt=-99;
         ballX=0; ballY=26; ballZ=0; ballPreviousZ=0; catcher=-1;
         for(Fielder f:fielders) f.reset();
         feedback.emit("ready");
