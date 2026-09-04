@@ -1,4 +1,4 @@
-# Crease Clash — first playable v0.1.0
+# Crease Clash — batting update v0.2.0
 
 An original offline, single-player stick-style cricket game, created for Shubham Mahendrakar.
 Java gameplay and vector artwork are shared between a desktop test harness and a LibGDX Android launcher.
@@ -15,6 +15,8 @@ contact. The stadium, kits, scoreboard, and larger thumb controls have been redr
 
 Download the latest successful `crease-clash-debug-apk` artifact from
 [GitHub Actions](https://github.com/shubhamdm3/crease-clash/actions) and extract `android-debug.apk`.
+[v0.2 verified build](https://github.com/shubhamdm3/crease-clash/actions/runs/33851929061) passed
+assembly, lint, signature verification, and real left/right contact tests on an Android 15 emulator.
 This remains an original arcade prototype for device testing. See `BUILD-STATUS.md` for evidence.
 
 **Upgrading from v0.1:** that build used a temporary debug signing key. Uninstall v0.1 before
