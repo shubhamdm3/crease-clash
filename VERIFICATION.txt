@@ -1,0 +1,10 @@
+2026-09-04
+Java 17 core, controller, renderer, tests and desktop compilation: PASS
+Behavioral assertions: 1863 PASS
+360-shot matrix: 1 run=112; 2 runs=39; 4 runs=58; 6 runs=93; wickets=58
+100 no-input innings and 40-delivery practice run: PASS
+Shared-renderer screenshots: 9 generated
+Java source syntax parse: all 11 files PASS
+Android XML well-formedness: PASS
+Gradle wrapper main class: present
+Android dependency resolution, type compilation, lint, APK assembly, installation and physical-device behavior: NOT VERIFIED
