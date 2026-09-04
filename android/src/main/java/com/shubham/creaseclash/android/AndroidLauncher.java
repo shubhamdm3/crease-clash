@@ -1,6 +1,7 @@
 package com.shubham.creaseclash.android;
 
 import android.os.Bundle;
+import android.os.Build;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.view.WindowManager;
@@ -12,6 +13,11 @@ public final class AndroidLauncher extends AndroidApplication {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if(Build.VERSION.SDK_INT>=28) {
+            WindowManager.LayoutParams attributes=getWindow().getAttributes();
+            attributes.layoutInDisplayCutoutMode=WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER;
+            getWindow().setAttributes(attributes);
+        }
         AndroidApplicationConfiguration config=new AndroidApplicationConfiguration();
         config.useImmersiveMode=true; config.useAccelerometer=false; config.useCompass=false;
         config.useGyroscope=false; config.numSamples=2;
