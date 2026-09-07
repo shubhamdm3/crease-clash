@@ -24,6 +24,14 @@ def tap(x, y):
     physical_y = round((height-810*scale)/2 + y*scale)
     adb('shell', 'input', 'tap', str(physical_x), str(physical_y))
 
+def tap_burst(x, y, count=24):
+    """Send repeated physical taps in one adb call so host latency cannot skip the window."""
+    scale = min(width/1440, height/810)
+    physical_x = round((width-1440*scale)/2 + x*scale)
+    physical_y = round((height-810*scale)/2 + y*scale)
+    command = '; '.join(f'input tap {physical_x} {physical_y}; sleep .04' for _ in range(count))
+    adb('shell', command)
+
 # Acknowledge the emulator's fullscreen onboarding tip before testing the game UI.
 # This is a System UI tutorial preference, not an application permission.
 adb('shell', 'settings', 'put', 'secure', 'immersive_mode_confirmations', 'confirmed')
@@ -67,9 +75,9 @@ time.sleep(.3)
 events = adb('logcat', '-d', '-s', 'CreaseClash:I', '*:S')
 assert 'event=hit' not in events, 'Premature touch must not create contact'
 
-# Follow a near-arrival runtime cue with a real Android touch.
-wait_event('event=timing-cue')
-tap(240, 730)
+# Repeat genuine taps across the live delivery. Early taps are rejected; only a tap inside the
+# real contact window can connect.
+tap_burst(240, 730)
 wait_event('event=hit side=-1')
 capture('04-left-manual-contact')
 wait_event('event=ready', count=2)
@@ -79,8 +87,7 @@ capture('05-left-result')
 tap(835, 730)
 tap(590, 730)
 wait_event('event=release', count=2)
-wait_event('event=timing-cue', count=2)
-tap(1180, 730)
+tap_burst(1180, 730)
 wait_event('event=hit side=1')
 capture('06-right-manual-contact')
 wait_event('event=ready', count=3)
