@@ -53,43 +53,58 @@ def wait_event(pattern, count=1, timeout=70):
     (OUT/'failed-events.txt').write_text(logs)
     raise AssertionError(f'Missing game event {pattern!r} (expected {count}): {logs}')
 
-# Actual Android touch input: one EARLY press starts bowling and must hit on its own.
-# No hidden autoplay, frame-perfect injection, or direct simulation calls.
+# Shot buttons must not auto-bowl or queue a future hit.
 tap(240, 730)
-wait_event('event=queued side=-1')
-capture('04-left-shot-queued')
+time.sleep(.4)
+events = adb('logcat', '-d', '-s', 'CreaseClash:I', '*:S')
+assert 'event=release' not in events and 'event=hit' not in events, events
+
+# Bowl, deliberately tap too early, and prove that it does not connect.
+tap(590, 730)
+wait_event('event=release')
+tap(240, 730)
+time.sleep(.3)
+events = adb('logcat', '-d', '-s', 'CreaseClash:I', '*:S')
+assert 'event=hit' not in events, 'Premature touch must not create contact'
+
+# Follow a near-arrival runtime cue with a real Android touch.
+wait_event('event=timing-cue')
+tap(240, 730)
 wait_event('event=hit side=-1')
-capture('05-left-contact')
+capture('04-left-manual-contact')
 wait_event('event=ready', count=2)
-capture('06-left-result')
-# Exercise opposite direction and loft selection on the same installed app.
+capture('05-left-result')
+
+# Exercise a manually timed loft in the opposite direction.
 tap(835, 730)
+tap(590, 730)
+wait_event('event=release', count=2)
+wait_event('event=timing-cue', count=2)
 tap(1180, 730)
-wait_event('event=queued side=1')
 wait_event('event=hit side=1')
-capture('07-right-contact')
+capture('06-right-manual-contact')
 wait_event('event=ready', count=3)
-capture('08-two-balls-played')
+capture('07-two-manual-balls')
+
 events = adb('logcat', '-d', '-s', 'CreaseClash:I', '*:S')
 hits = [line for line in events.splitlines() if 'event=hit ' in line]
 assert len(hits) == 2, events
-assert all('grade=ASSISTED' in line and 'sixEligible=false' in line for line in hits), events
-assert 'lastRuns=6' not in events, 'Early queued shots must never score six'
-assert 'event=run side=-1 runs=3 balls=1' not in events, 'Close fielders must stop easy assisted threes'
-
+assert all('grade=PERFECT' in line for line in hits), events
+assert 'event=hit side=-1' in hits[0] and 'sixEligible=false' in hits[0], hits
+assert 'event=hit side=1' in hits[1] and 'sixEligible=true' in hits[1], hits
 tap(1359, 55)  # Pause
 time.sleep(.4)
-capture('09-pause')
+capture('08-pause')
 
 adb('shell', 'input', 'keyevent', 'KEYCODE_HOME')
 time.sleep(.5)
 adb('shell', 'am', 'start', '-W', '-n', f'{PACKAGE}/{ACTIVITY}')
 time.sleep(1)
-capture('10-return-from-background')
+capture('09-return-from-background')
 pid = adb('shell', 'pidof', PACKAGE).strip()
 assert pid, 'Game process stopped during the smoke test'
 logs = adb('logcat', '-d', f'--pid={pid}')
 (OUT/'app-logcat.txt').write_text(logs)
 assert 'FATAL EXCEPTION' not in logs, logs
-(OUT/'result.txt').write_text(f'PASS: APK installed and launched; real early LEFT and RIGHT touch inputs each connected, both were ASSISTED with no six eligibility, neither scored six, both balls resolved, and the app survived background/resume.\nResolution: {width}x{height}\nPhysical haptic feel and OnePlus latency are not tested by an emulator.\n')
+(OUT/'result.txt').write_text(f'PASS: APK installed and launched; shot buttons did not auto-bowl, a premature touch did not connect, and real manually timed LEFT and RIGHT touches connected as PERFECT. Both balls resolved and the app survived background/resume.\nResolution: {width}x{height}\nPhysical haptic feel and OnePlus latency are not tested by an emulator.\n')
 print((OUT/'result.txt').read_text())

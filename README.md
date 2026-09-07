@@ -1,32 +1,34 @@
-# Crease Clash — timing balance v0.3.0
+# Crease Clash — manual timing v0.4.0
 
 An original offline, single-player stick-style cricket game, created for Shubham Mahendrakar.
 Java gameplay and vector artwork are shared between a desktop test harness and a LibGDX Android launcher.
 
-## v0.3 timing balance
+### v0.4 manual batting
 
-Only a manually **PERFECT** lofted hit can score six. Club still saves very early taps as
-weak assisted contact, but those shots cannot clear the rope. Good/early/late shots lose
-power and mistimed lofts land inside the boundary. A gold timing zone and per-shot feedback
-show when to tap. Read [the research and balance notes](BATTING-BALANCE.md).
+Automatic and saved contact have been removed from every difficulty. Select GROUND or LOFT,
+tap BOWL, watch the delivery, and then tap HIT LEFT / HIT RIGHT when the timing marker enters
+gold. A premature tap does not play a shot and can be retried.
 
-Download `crease-clash-debug-apk` from a successful
-[GitHub Actions run](https://github.com/shubhamdm3/crease-clash/actions), then extract the APK.
-See `BUILD-STATUS.md` for validation. This is an original arcade prototype for device testing.
+Only a manually PERFECT loft is eligible for six. Good, early and late shots have lower power;
+mistimed lofts land inside the rope or risk a catch. Two close fielders limit weak ground shots.
+The interface displays the timing grade and early/late offset after contact.
 
-This v0.3 build uses a different debug signing certificate from v0.2. Uninstall v0.2 before
-installing v0.3; this resets local settings and the best score. Development signing-key
-caching did not persist, so update compatibility must not be assumed for test builds.
+Download the latest verified crease-clash-debug-apk from
+[GitHub Actions](https://github.com/shubhamdm3/crease-clash/actions), then extract the APK.
+See BUILD-STATUS.md for validation. This is an original arcade prototype for device testing.
 
-## Play
+Because these are development builds, uninstall the previous version if Android reports that
+the update is incompatible. Uninstalling resets the local best score and settings.
+
+# Play
 
 - **Chase:** 12 deliveries, 3 wickets. Club target 24, Pro 32, Elite 42.
 - **Practice:** unlimited deliveries and wickets; practice does not affect your best chase score.
-- Start with **CLUB**. Tap **BOWL**, then time **HIT LEFT** or **HIT RIGHT** in the gold zone.
-- A very early Club tap saves weak contact; tap again near arrival to earn better timing.
-- Only **PERFECT + LOFT** can produce six. Perfect ground shots can produce four.
-- Choose **GROUND SHOT** for safer runs or **LOFTED SHOT** to attempt a boundary with catch risk.
-- In Pro / Elite, tap at the yellow crease. Early taps can be retried; late contact loses power.
+- Select **GROUND** or **LOFT**, then tap **BOWL**.
+- Tap **HIT LEFT** or **HIT RIGHT** when the moving marker enters the gold zone.
+- Taps before the delivery window do not create contact; tap again at the correct time.
+- Only **PERFECT + LOFT** can produce six. PERFECT ground shots can produce four.
+- Club has the largest timing window; Pro and Elite are progressively narrower.
 - Fours, sixes, catches, and pickups follow the ball simulation. Running is automatic, up to three runs.
 - Sound and haptics can be switched off independently. Best score, difficulty, and settings persist.
 - Backgrounding pauses the game. Resume explicitly so a delivery cannot play unseen.

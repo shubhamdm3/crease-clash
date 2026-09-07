@@ -40,7 +40,7 @@ public final class GameRenderer {
         smallButton(1140,"SOUND",session.sound);
         smallButton(1230,"HAPTIC",session.haptics);
         d.roundRect(1320,28,78,54,13,PANEL);
-        if(g.phase==Phase.MENU) d.text("v0.3",1359,61,15,MUTED,true);
+        if(g.phase==Phase.MENU) d.text("v0.4",1359,61,15,MUTED,true);
         else { d.rect(1349,44,6,22,WHITE); d.rect(1363,44,6,22,WHITE); }
         d.line(40,106,1400,106,1,0xff36504d);
     }
@@ -110,7 +110,7 @@ public final class GameRenderer {
         double by=running?CricketGame.BATTER_Y+40*(run>1?2-run:run):CricketGame.BATTER_Y;
         if(g.phase==Phase.RUNUP || g.phase==Phase.DELIVERY || g.phase==Phase.READY) {
             double y=py(-16),x=wx(0,-16);
-            d.oval(x,y,61,13,g.shotQueued?0xfffbe78e:0xff82b892);
+            d.oval(x,y,61,13,0xff82b892);
             d.oval(x,y,53,8,0xffd4bd89);
             if(g.phase==Phase.DELIVERY) {
                 double bounceY=26+(-16-26)*g.bounceFraction;
@@ -232,25 +232,27 @@ public final class GameRenderer {
         }
     }
     private void controls() {
-        boolean club=g.difficulty==CricketGame.Difficulty.CLUB;
-        boolean active=!g.swung && (g.phase==Phase.DELIVERY || club && (g.phase==Phase.RUNUP || g.phase==Phase.READY));
-        boolean left=g.shotQueued && g.shotSide<0,right=g.shotQueued && g.shotSide>0;
-        button(40,682,420,100,left?"LEFT SHOT SAVED":"HIT LEFT","ON SIDE / TAP TO HIT",left?LIME:active?0xff7ccce0:PANEL,active?INK:WHITE);
-        button(980,682,420,100,right?"RIGHT SHOT SAVED":"HIT RIGHT","OFF SIDE / TAP TO HIT",right?LIME:active?0xff7ccce0:PANEL,active?INK:WHITE);
-        String center=g.phase==Phase.READY?"BOWL":g.shotQueued?"READY!":g.phase==Phase.RUNUP?"GET READY":g.phase==Phase.DELIVERY?"CHOOSE SHOT":g.phase==Phase.RESULT?"NEXT BALL":"IN PLAY";
-        button(490,682,200,100,center,g.phase==Phase.READY?"OR TAP A SHOT":"",g.phase==Phase.READY?LIME:PANEL,g.phase==Phase.READY?INK:MUTED);
+        boolean active=g.phase==Phase.DELIVERY && !g.swung;
+        boolean perfectNow=active && Math.abs(g.clock-g.deliveryDuration)<=g.difficulty.perfect;
+        button(40,682,420,100,"HIT LEFT","ON SIDE / MANUAL TIMING",active?0xff7ccce0:PANEL,active?INK:WHITE);
+        button(980,682,420,100,"HIT RIGHT","OFF SIDE / MANUAL TIMING",active?0xff7ccce0:PANEL,active?INK:WHITE);
+        String center=g.phase==Phase.READY?"BOWL":g.phase==Phase.RUNUP?"GET READY":
+            g.phase==Phase.DELIVERY?(perfectNow?"HIT NOW!":"WATCH BALL"):
+            g.phase==Phase.RESULT?"NEXT BALL":"IN PLAY";
+        button(490,682,200,100,center,g.phase==Phase.READY?"TAP TO BOWL":"",g.phase==Phase.READY?LIME:PANEL,g.phase==Phase.READY?INK:MUTED);
         button(720,682,230,100,g.lofted?"LOFTED SHOT":"GROUND SHOT","TAP TO CHANGE",g.lofted?CORAL:PANEL,g.lofted?INK:WHITE);
-        d.text(club?"CLUB: early taps save weak contact. Tap in the gold zone for PERFECT power.":"PRO / ELITE: tap when the ball reaches the yellow crease.",720,803,12,MUTED,true);
+        d.text("MANUAL TIMING: tap when the marker enters gold. Only PERFECT lofts can score six.",720,803,12,MUTED,true);
     }
     private void liveCaption() {
         String title,sub; int color=WHITE;
         boolean club=g.difficulty==CricketGame.Difficulty.CLUB;
         switch(g.phase) {
-            case READY: title=club?"TAP LEFT OR RIGHT TO PLAY":"READY FOR THE NEXT BALL?"; sub=club?"For six: choose LOFT, then time your tap in gold.":"Tap BOWL. Watch the ball reach the yellow crease."; break;
-            case RUNUP: case DELIVERY:
-                boolean perfectNow=g.phase==Phase.DELIVERY && Math.abs(g.clock-g.deliveryDuration)<=g.difficulty.perfect;
-                title=perfectNow?"PERFECT ZONE - HIT NOW!":g.shotQueued?"EARLY SHOT SAVED":"WATCH THE BALL";
-                sub=g.shotQueued?"Tap again in the gold zone for full power.":"Tap in gold. Only PERFECT lofts can score six.";
+            case READY: title="TAP BOWL TO START"; sub="Select GROUND or LOFT before the delivery."; break;
+            case RUNUP: title="WATCH THE BOWLER"; sub="Wait for release. Early taps do not play a shot."; break;
+            case DELIVERY:
+                boolean perfectNow=Math.abs(g.clock-g.deliveryDuration)<=g.difficulty.perfect;
+                title=perfectNow?"PERFECT ZONE - HIT NOW!":"WATCH THE BALL";
+                sub="Tap in gold. Every hit uses your real timing.";
                 color=perfectNow?LIME:WHITE; break;
             case SHOT: title=g.timing; sub=g.detail; color=g.timingGrade==CricketGame.Timing.PERFECT?LIME:WHITE; break;
             case RETURN: title="RUNNING BETWEEN WICKETS"; sub="Running and fielding happen automatically."; break;
@@ -273,8 +275,7 @@ public final class GameRenderer {
             double error=g.phase==Phase.DELIVERY?g.clock-g.deliveryDuration:g.timingError;
             double marker=barX+barW*CricketGame.clamp(.5+error/range,0,1);
             d.line(marker,257,marker,281,3,WHITE);
-            d.text(g.phase==Phase.DELIVERY?"TAP AS THE MARKER ENTERS GOLD":g.timingGrade==CricketGame.Timing.ASSISTED?"ASSISTED CONTACT / REDUCED POWER":
-                g.timing+" / "+Math.abs(Math.round(error*1000))+" ms "+(error<0?"EARLY":"LATE"),227.5,296,10,WHITE,true);
+            d.text(g.phase==Phase.DELIVERY?"TAP AS THE MARKER ENTERS GOLD":g.timing+" / "+Math.abs(Math.round(error*1000))+" ms "+(error<0?"EARLY":"LATE"),227.5,296,10,WHITE,true);
         }
         if(g.phase==Phase.RESULT && (g.lastRuns>=4 || g.lastWicket)) {
             d.roundRect(618,485,204,128,20,0xee101e32);
@@ -289,7 +290,7 @@ public final class GameRenderer {
         d.text("Two overs.",72,275,58,WHITE,false);
         d.text("One chase.",72,341,58,LIME,false);
         d.text("Pick your shot. Find the gap.",76,384,18,WHITE,false);
-        d.text("Easy contact. Sixes take perfect timing.",76,411,18,MUTED,false);
+        d.text("Every shot uses manual timing.",76,411,18,MUTED,false);
         d.roundRect(76,431,445,52,13,PANEL);
         d.text("DIFFICULTY",95,462,12,MUTED,false);
         d.text(session.selected.label+"  /  "+session.selected.target+" TO WIN",362,463,15,LIME,true);
@@ -306,7 +307,7 @@ public final class GameRenderer {
         d.line(1108,270,1135,236,3,CORAL);
         for(int i=0;i<5;i++) d.line(1110+i*5,262-i*6,1116+i*5,266-i*6,1.5,CORAL);
         d.roundRect(970,576,313,59,16,0xee19363a);
-        d.text("TIME IT RIGHT. EARN YOUR SIX.",1127,612,11,LIME,true);
+        d.text("MANUAL TIMING. EARN YOUR SIX.",1127,612,11,LIME,true);
         d.text("ORIGINAL ARCADE CRICKET / BATTING UPDATE",40,780,11,MUTED,false);
         d.text("JAVA + LIBGDX",1260,780,11,MUTED,false);
     }
@@ -339,10 +340,10 @@ public final class GameRenderer {
     private void help() {
         dim(); d.roundRect(352,159,736,534,26,BG);
         d.text("MAKE EVERY BALL COUNT",720,214,29,LIME,true);
-        String[][] rows={{"01","START WITH CLUB","Tap BOWL, then time HIT LEFT or HIT RIGHT as the ball arrives."},
+        String[][] rows={{"01","BOWL FIRST","Select a shot type, tap BOWL, then watch the delivery."},
             {"02","PICK YOUR SIDE","Behind the batter: LEFT is on / leg side. RIGHT is off side."},
             {"03","CHOOSE YOUR RISK","GROUND finds gaps. LOFT can clear the rope or get caught."},
-            {"04","EARN YOUR SIX","Only a PERFECT timed LOFT can score six. Tap as the marker enters gold."},
+            {"04","MANUAL INPUT","Every shot is timed. Tap in gold; only PERFECT LOFT can score six."},
             {"05","CHASE THE TARGET","Twelve balls, three wickets. Fielding and running are automatic."}};
         for(int i=0;i<rows.length;i++) {
             double y=268+i*71;

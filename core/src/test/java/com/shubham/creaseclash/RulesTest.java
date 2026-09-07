@@ -49,26 +49,23 @@ public final class RulesTest {
         for(int i=0;i<30;i++) g.update(STEP);
         check(g.balls==1,"Result animation does not score twice");
 
-        // Phone controls must connect even when pressed well before the delivery arrives.
-        for(int seed=0;seed<100;seed++) for(int side:new int[]{-1,1}) {
-            g=fresh(seed*982451653L);
-            check(g.swing(side),"Club shot starts delivery from ready");
-            check(g.phase==Phase.RUNUP && g.shotQueued && !g.swung,"Early shot remains queued");
-            int guard=0; while(g.phase!=Phase.SHOT && guard++<700) g.update(STEP);
-            check(g.phase==Phase.SHOT && g.hits==1,"Queued Club input produces real contact");
-            check(Math.signum(g.velocityX)==side && g.velocityY>0,"Shot goes to selected screen side and down the pitch");
-            check(g.timingGrade==Timing.ASSISTED && g.quality<=.38 && !g.sixEligible,"Early assistance cannot grant perfect power");
-            untilResult(g); check(!g.lastWicket,"Assisted ground shot stays safe");
-            check(g.lastRuns<=2,"Weak assisted ground shots cannot farm easy threes");
+        // Every difficulty requires a tap during the actual delivery.
+        for(Difficulty difficulty:Difficulty.values()) for(int seed=0;seed<60;seed++) {
+            g=fresh(seed*982451653L); g.start(true,difficulty);
+            check(!g.swing(1) && g.phase==Phase.READY,"Shot button cannot start or automate a ball");
+            delivery(g);
+            check(!g.swing(1) && !g.swung,"Tap immediately after release is too early and does not connect");
+            while(g.clock<g.deliveryDuration) g.update(STEP);
+            g.lofted=true;
+            check(g.swing(g.deliveryLine<0?-1:1),"Manual tap at arrival connects");
+            check(g.timingGrade==Timing.PERFECT && g.sixEligible,"Perfect manual loft earns six eligibility");
+            untilResult(g);
         }
-        g=fresh(2); g.swing(-1); g.swing(1);
-        check(g.shotSide==1,"Can change a queued shot direction");
-        g.setPaused(true); double queuedClock=g.clock; g.update(10);
-        check(g.shotQueued && g.clock==queuedClock,"Pause retains the queued shot without advancing");
-        g.start(true,Difficulty.CLUB); check(!g.shotQueued,"Restart clears queued input");
-        delivery(g); g.lofted=true; ideal(g);
-        check(g.timingGrade==Timing.PERFECT && g.quality==1,"A manually timed Club shot earns perfect power");
-        untilResult(g);
+        g=fresh(42); delivery(g);
+        while(g.clock<g.deliveryDuration-g.difficulty.window*1.5) g.update(STEP);
+        check(!g.swing(-1) && g.phase==Phase.DELIVERY,"Premature Club tap stays unplayed");
+        while(g.clock<g.deliveryDuration) g.update(STEP);
+        check(g.swing(1) && g.hits==1,"Later manual tap can recover from an early attempt");
 
         g=fresh(4); placeShot(g,61.9,0,5,false); g.velocityX=30;
         g.update(STEP); check(g.runs==6,"Airborne rope crossing scores six");
@@ -125,30 +122,15 @@ public final class RulesTest {
         check(s.best==35 && p.readInt("best",0)==35,"Completed chase records best score");
         s.start(true); s.game.runs=90; s.update(STEP); check(s.best==35,"Practice does not inflate best chase score");
 
-        s.selected=Difficulty.CLUB; s.start(true); s.tap(240,730);
-        check(s.game.shotQueued && s.game.shotSide==-1,"Left touch queues on-side shot");
-        s.tap(1180,730); check(s.game.shotSide==1,"Right touch changes to off-side");
-        untilResult(s.game); check(s.game.hits==1 && s.game.runs<=2,"Early touch connects but close fielders limit free runs");
-
-        // Regression: v0.2 auto-promoted every queued loft to maximum power.
-        for(int seed=0;seed<100;seed++) for(int side:new int[]{-1,1}) {
-            g=fresh(seed*982451653L); g.lofted=true; g.swing(side);
-            untilResult(g);
-            check(g.hits==1 && g.timingGrade==Timing.ASSISTED,"Early loft still makes contact");
-            check(g.lastRuns!=6 && !g.sixEligible,"Queued loft NEVER becomes six");
-            check(g.lastRuns<4 || g.grounded,"Assisted boundary must actually bounce first");
-        }
-        g=fresh(33); g.lofted=true; g.swing(-1);
-        while(g.phase!=Phase.DELIVERY) g.update(STEP);
-        while(g.clock<g.deliveryDuration-.025) g.update(STEP);
-        check(g.swing(g.deliveryLine<0?-1:1),"Can replace an early queued shot with a timed tap");
-        check(g.timingGrade==Timing.PERFECT && g.sixEligible,"Timed correction can earn six eligibility");
-
-        g=fresh(33); g.lofted=true; g.swing(-1);
-        while(g.phase!=Phase.DELIVERY) g.update(STEP);
-        while(g.clock<g.deliveryDuration+.025) g.update(STEP);
-        check(g.shotQueued && g.swing(g.deliveryLine<0?-1:1),"Late half of perfect zone can override saved contact");
-        check(g.timingGrade==Timing.PERFECT && g.sixEligible,"Perfect correction works on both sides of arrival");
+        s.selected=Difficulty.CLUB; s.start(true);
+        s.tap(240,730);
+        check(s.game.phase==Phase.READY && s.game.hits==0,"Touch shot cannot auto-bowl or queue contact");
+        s.tap(590,730); delivery(s.game);
+        s.tap(240,730);
+        check(s.game.phase==Phase.DELIVERY && s.game.hits==0,"Early touch does not create assisted contact");
+        while(s.game.clock<s.game.deliveryDuration) s.game.update(STEP);
+        s.tap(240,730);
+        check(s.game.phase==Phase.SHOT && s.game.hits==1 && s.game.timingGrade==Timing.PERFECT,"Timed touch creates manual contact");
 
         Map<String,int[]> balance=new TreeMap<>();
         for(Difficulty diff:Difficulty.values()) for(int seed=0;seed<30;seed++) for(int offset=-24;offset<=24;offset++) {

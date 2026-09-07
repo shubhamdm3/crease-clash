@@ -1,2 +1,2 @@
 plugins { id 'base' }
-allprojects { group = 'com.shubham.creaseclash'; version = '0.3.0' }
+allprojects { group = 'com.shubham.creaseclash'; version = '0.4.0' }
