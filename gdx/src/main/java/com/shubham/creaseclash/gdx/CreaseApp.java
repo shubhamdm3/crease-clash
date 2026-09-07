@@ -20,7 +20,6 @@ public final class CreaseApp extends ApplicationAdapter {
     private final FitViewport viewport=new FitViewport(1440,810,camera);
     private final Map<String,Sound> sounds=new HashMap<>();
     private final Vector2 touch=new Vector2();
-    private boolean timingCueSent;
     public CreaseApp(Haptics haptics) { this.haptics=haptics; }
     @Override public void create() {
         draw=new GdxDraw();
@@ -55,11 +54,6 @@ public final class CreaseApp extends ApplicationAdapter {
         Gdx.gl.glViewport(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());
         Gdx.gl.glClearColor(.035f,.08f,.09f,1); Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         viewport.apply(); camera.update(); session.update(Gdx.graphics.getDeltaTime());
-        if(session.game.phase!=CricketGame.Phase.DELIVERY) timingCueSent=false;
-        else if(!timingCueSent && session.game.clock>=session.game.deliveryDuration-.11) {
-            timingCueSent=true;
-            Gdx.app.log("CreaseClash","event=timing-cue");
-        }
         draw.begin(camera); renderer.render(draw,session); draw.end();
     }
     @Override public void pause() { if(session!=null) session.background(); }

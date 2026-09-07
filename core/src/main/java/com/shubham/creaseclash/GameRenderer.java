@@ -101,25 +101,26 @@ public final class GameRenderer {
         double bowlerY=g.phase==Phase.RUNUP?43-g.clock*17:26;
         double stride=g.phase==Phase.RUNUP?Math.sin(g.clock*19):g.phase==Phase.DELIVERY?Math.sin(g.clock*13)*.4:0;
         double arm=g.phase==Phase.RUNUP && g.clock>.72?(g.clock-.72)/.28:g.phase==Phase.DELIVERY?Math.max(0,1-g.clock*3):0;
+        boolean running=g.phase==Phase.SHOT || g.phase==Phase.RETURN;
+        double runStride=running?Math.sin(g.animation*18):0;
         player(wx(5.2,29),py(29),playerScale(29),WHITE,0,false,false,0);
-        player(wx(-5.2,23),py(23),playerScale(23),0xff559bdf,0,true,false,0);
+        double nonStrikerY=running?g.nonStrikerRunY():23;
+        player(wx(-5.2,nonStrikerY),py(nonStrikerY),playerScale(nonStrikerY),0xff559bdf,-runStride,true,false,0);
         stumps(wx(0,26),py(26),playerScale(26),false);
         player(wx(-.5,bowlerY),py(bowlerY),playerScale(bowlerY),CORAL,stride,false,false,arm);
-        boolean running=g.phase==Phase.SHOT || g.phase==Phase.RETURN;
-        double run=CricketGame.clamp((g.shotClock-CricketGame.RUN_REACTION)/CricketGame.RUN_SECONDS,0,3)%2;
-        double by=running?CricketGame.BATTER_Y+40*(run>1?2-run:run):CricketGame.BATTER_Y;
+        double by=running?g.strikerRunY():CricketGame.BATTER_Y;
         if(g.phase==Phase.RUNUP || g.phase==Phase.DELIVERY || g.phase==Phase.READY) {
             double y=py(-16),x=wx(0,-16);
             d.oval(x,y,61,13,0xff82b892);
             d.oval(x,y,53,8,0xffd4bd89);
             if(g.phase==Phase.DELIVERY) {
                 double bounceY=26+(-16-26)*g.bounceFraction;
-                d.oval(wx(g.deliveryLine*g.bounceFraction,bounceY),py(bounceY),17,5,0xfffde6a2);
+                d.oval(wx(g.deliveryXAt(g.bounceFraction),bounceY),py(bounceY),17,5,0xfffde6a2);
             }
         }
         double swing=g.swingProgress();
         player(wx(-2.7,by),py(by),playerScale(by),0xff559bdf,
-            running?Math.sin(g.animation*18):0,true,g.swung && swing<1,swing);
+            runStride,true,g.swung && swing<1,swing);
         stumps(wx(0,-17.2),py(-17.2),playerScale(-17.2)*.85,g.lastWicket && g.result.equals("BOWLED") && g.phase==Phase.RESULT);
         if(g.phase==Phase.DELIVERY || g.phase==Phase.SHOT || g.phase==Phase.RETURN || g.phase==Phase.RESULT) ball();
         if(g.phase==Phase.RESULT && g.lastRuns>=4) for(int i=0;i<44;i++) {
@@ -248,11 +249,11 @@ public final class GameRenderer {
         boolean club=g.difficulty==CricketGame.Difficulty.CLUB;
         switch(g.phase) {
             case READY: title="TAP BOWL TO START"; sub="Select GROUND or LOFT before the delivery."; break;
-            case RUNUP: title="WATCH THE BOWLER"; sub="Wait for release. Early taps do not play a shot."; break;
+            case RUNUP: title=g.deliveryName; sub=g.deliveryHint; break;
             case DELIVERY:
                 boolean perfectNow=Math.abs(g.clock-g.deliveryDuration)<=g.difficulty.perfect;
-                title=perfectNow?"PERFECT ZONE - HIT NOW!":"WATCH THE BALL";
-                sub="Tap in gold. Every hit uses your real timing.";
+                title=perfectNow?"PERFECT ZONE - HIT NOW!":g.deliveryName;
+                sub=perfectNow?"Tap now—this is the only six-power timing.":g.deliveryHint;
                 color=perfectNow?LIME:WHITE; break;
             case SHOT: title=g.timing; sub=g.detail; color=g.timingGrade==CricketGame.Timing.PERFECT?LIME:WHITE; break;
             case RETURN: title="RUNNING BETWEEN WICKETS"; sub="Running and fielding happen automatically."; break;

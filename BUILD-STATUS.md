@@ -8,6 +8,8 @@ The required gate checks:
 - a premature touch after release must not produce contact;
 - manually timed LEFT and RIGHT Android touches must connect;
 - only the PERFECT loft may have six eligibility;
+- all six named deliveries must exercise measurably different length/bounce/curve physics;
+- striker and non-striker positions must swap together during a completed run;
 - behavioral tests, Android lint, APK signature verification, installation, rendering and
   background/resume must pass.
 

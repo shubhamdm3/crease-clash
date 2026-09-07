@@ -39,9 +39,9 @@ public final class CricketGame {
     public boolean practice, paused, lofted, swung, grounded, won, lastWicket;
     public int runs,wickets,balls,lastRuns,hits,shotSide=1;
     public double clock, animation, ballX,ballY,ballZ,velocityX,velocityY,velocityZ;
-    public double deliveryDuration, deliveryLine, bounceFraction, bounceHeight, swingAt=-99;
+    public double deliveryDuration, deliveryLine, deliveryCurve, bounceFraction, bounceHeight, swingAt=-99;
     public double timingError, quality, shotClock, returnDuration;
-    public String timing="", result="", detail="", deliveryName="";
+    public String timing="", result="", detail="", deliveryName="", deliveryHint="";
     public int catcher=-1;
     public Timing timingGrade=Timing.NONE;
     public boolean sixEligible;
@@ -70,12 +70,35 @@ public final class CricketGame {
         if(phase!=Phase.READY || paused) return;
         phase=Phase.RUNUP; clock=0; swung=false; swingAt=-99; catcher=-1;
         timing=""; timingGrade=Timing.NONE; sixEligible=false; result=""; lastWicket=false; lastRuns=0;
-        deliveryLine=(random.nextDouble()*2-1)*2.65;
-        bounceFraction=.54+random.nextDouble()*.2;
-        bounceHeight=.55+random.nextDouble()*.85;
-        deliveryDuration=difficulty.deliverySeconds*(.87+random.nextDouble()*.23);
-        deliveryName=deliveryDuration<difficulty.deliverySeconds*.95 ? "QUICK PACE" : "CHANGE OF PACE";
-        if(bounceFraction>.69) deliveryName="FULL DELIVERY";
+        deliveryLine=(random.nextDouble()*2-1)*3.5;
+        deliveryCurve=0;
+        double pace=.91+random.nextDouble()*.16;
+        switch(random.nextInt(6)) {
+            case 0:
+                deliveryName="YORKER"; deliveryHint="Very full and skidding at the base of the stumps.";
+                bounceFraction=.88; bounceHeight=.22; pace*=.96; break;
+            case 1:
+                deliveryName="FULL DELIVERY"; deliveryHint="Full length with a low bounce.";
+                bounceFraction=.73; bounceHeight=.52; pace*=1.01; break;
+            case 2:
+                deliveryName="GOOD LENGTH"; deliveryHint="Balanced pace and bounce—watch it closely.";
+                bounceFraction=.58; bounceHeight=1.02; break;
+            case 3:
+                deliveryName="SHORT BALL"; deliveryHint="Shorter length; the ball climbs after pitching.";
+                bounceFraction=.39; bounceHeight=1.78; pace*=1.08; break;
+            case 4:
+                deliveryName="INSWINGER"; deliveryHint="Curving in through the air before it reaches you.";
+                bounceFraction=.59; bounceHeight=.91;
+                deliveryCurve=(deliveryLine>=0?-1:1)*(1.7+random.nextDouble()*.9); pace*=1.02; break;
+            default:
+                deliveryName="OUTSWINGER"; deliveryHint="Curving away through the air—follow its movement.";
+                bounceFraction=.61; bounceHeight=.88;
+                deliveryCurve=(deliveryLine>=0?1:-1)*(1.7+random.nextDouble()*.9); pace*=1.03; break;
+        }
+        // Small per-ball differences stop repeated deliveries feeling scripted.
+        bounceFraction=clamp(bounceFraction+(random.nextDouble()*2-1)*.025,.34,.91);
+        bounceHeight=Math.max(.16,bounceHeight*(.91+random.nextDouble()*.18));
+        deliveryDuration=difficulty.deliverySeconds*pace;
         ballX=0; ballY=26; ballZ=0;
     }
     public void toggleLoft() {
@@ -140,7 +163,7 @@ public final class CricketGame {
                 break;
             case DELIVERY:
                 double t=clock/deliveryDuration;
-                ballX=deliveryLine*Math.min(1,t);
+                ballX=deliveryXAt(Math.min(1,t));
                 ballY=26+(BATTER_Y-26)*t;
                 if(t<bounceFraction) ballZ=2.6*(1-t/bounceFraction);
                 else {
@@ -252,6 +275,19 @@ public final class CricketGame {
     public int ballsLeft() { return Math.max(0,MAX_BALLS-balls); }
     public String overs() { return balls/6+"."+balls%6; }
     public double deliveryProgress() { return phase==Phase.DELIVERY?clock/deliveryDuration:0; }
+    /** Lateral position along the delivery, including visible in/out swing. */
+    public double deliveryXAt(double progress) {
+        double p=clamp(progress,0,1);
+        return deliveryLine*p+deliveryCurve*Math.sin(Math.PI*p);
+    }
+    /** One completed run moves both batters to opposite creases; the next swaps them back. */
+    public double runnerFraction() {
+        if(phase!=Phase.SHOT && phase!=Phase.RETURN) return 0;
+        double leg=clamp((shotClock-RUN_REACTION)/RUN_SECONDS,0,3)%2;
+        return leg>1?2-leg:leg;
+    }
+    public double strikerRunY() { return BATTER_Y+40*runnerFraction(); }
+    public double nonStrikerRunY() { return 24-40*runnerFraction(); }
     public double swingProgress() { return clamp((animation-swingAt)/.34,0,1); }
     public static double clamp(double n,double min,double max) { return Math.max(min,Math.min(max,n)); }
 }

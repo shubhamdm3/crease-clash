@@ -40,6 +40,34 @@ public final class RulesTest {
         check(g.clock==pausedClock && g.balls==pausedBalls && !g.swung,"Pause freezes simulation and rejects actions");
         g.setPaused(false); g.update(STEP); check(g.clock<pausedClock+.02,"Resume does not accumulate paused time");
 
+        // Delivery labels represent different physics, not cosmetic random names.
+        Set<String> variations=new HashSet<>();
+        double shortestBounce=1,longestBounce=0,lowestBounce=99,highestBounce=0;
+        int curved=0;
+        for(int seed=0;seed<600;seed++) {
+            g=fresh(seed*982451653L); g.bowl();
+            variations.add(g.deliveryName);
+            shortestBounce=Math.min(shortestBounce,g.bounceFraction);
+            longestBounce=Math.max(longestBounce,g.bounceFraction);
+            lowestBounce=Math.min(lowestBounce,g.bounceHeight);
+            highestBounce=Math.max(highestBounce,g.bounceHeight);
+            check(Math.abs(g.deliveryXAt(1)-g.deliveryLine)<1e-9,"Every variation reaches its selected line");
+            if(g.deliveryName.endsWith("SWINGER")) {
+                curved++;
+                check(Math.abs(g.deliveryXAt(.5)-g.deliveryLine*.5)>1.5,"Swing delivery visibly curves in flight");
+            }
+        }
+        check(variations.equals(new HashSet<>(Arrays.asList("YORKER","FULL DELIVERY","GOOD LENGTH","SHORT BALL","INSWINGER","OUTSWINGER"))),"All six delivery variations occur");
+        check(curved>100,"Swing is common enough to be noticed");
+        check(longestBounce-shortestBounce>.42 && highestBounce-lowestBounce>1.3,"Lengths have clearly different bounce points and heights");
+
+        g=fresh(3); g.phase=Phase.SHOT; g.shotClock=RUN_REACTION;
+        check(g.strikerRunY()==BATTER_Y && g.nonStrikerRunY()==24,"Both batters begin at opposite creases");
+        g.shotClock=RUN_REACTION+RUN_SECONDS;
+        check(g.strikerRunY()==24 && g.nonStrikerRunY()==BATTER_Y,"Both batters cross and swap creases together");
+        g.shotClock=RUN_REACTION+2*RUN_SECONDS;
+        check(g.strikerRunY()==BATTER_Y && g.nonStrikerRunY()==24,"Second run sends both batters back");
+
         g=fresh(11); g.start(false,Difficulty.PRO); delivery(g);
         check(!g.swing(1) && !g.swung,"A very early timed tap does not use up the swing");
         while(g.clock<g.deliveryDuration) g.update(STEP);
