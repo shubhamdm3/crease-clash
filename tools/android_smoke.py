@@ -49,7 +49,7 @@ def wait_event(pattern, count=1, timeout=70):
         logs = adb('logcat', '-d', '-s', 'CreaseClash:I', '*:S')
         if logs.count(pattern) >= count:
             return logs
-        time.sleep(.5)
+        time.sleep(.02)
     (OUT/'failed-events.txt').write_text(logs)
     raise AssertionError(f'Missing game event {pattern!r} (expected {count}): {logs}')
 

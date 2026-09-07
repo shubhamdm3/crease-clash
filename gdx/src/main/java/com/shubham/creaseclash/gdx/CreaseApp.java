@@ -56,7 +56,8 @@ public final class CreaseApp extends ApplicationAdapter {
         Gdx.gl.glClearColor(.035f,.08f,.09f,1); Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         viewport.apply(); camera.update(); session.update(Gdx.graphics.getDeltaTime());
         if(session.game.phase!=CricketGame.Phase.DELIVERY) timingCueSent=false;
-        else if(!timingCueSent && session.game.clock>=session.game.deliveryDuration-.11) {
+        // Test-only log cue at ball arrival. The UI timing meter remains the player-facing cue.
+        else if(!timingCueSent && session.game.clock>=session.game.deliveryDuration-.02) {
             timingCueSent=true;
             Gdx.app.log("CreaseClash","event=timing-cue");
         }
