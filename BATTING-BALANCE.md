@@ -31,6 +31,11 @@ formulas; the thresholds below are original tuning for Crease Clash.
 - Weak ground shots are collected by close fielders instead of producing easy threes.
 - A visible timing meter uses the same simulation thresholds and freezes the actual offset after
   contact.
+- Six delivery variations use different length, bounce, pace and lateral path parameters. Inswing
+  and outswing curve in flight and finish on the selected line; the other four range from yorker
+  to short-ball bounce points.
+- Both batters use the same running progress in opposite directions, crossing and swapping creases
+  for every completed run.
 
 Automated rules tests exercise all difficulty windows, premature retries, scoring, physics,
 fielding and the perfect-only-six invariant. Android testing additionally presses a shot before

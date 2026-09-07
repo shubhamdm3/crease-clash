@@ -13,6 +13,10 @@ Only a manually PERFECT loft is eligible for six. Good, early and late shots hav
 mistimed lofts land inside the rope or risk a catch. Two close fielders limit weak ground shots.
 The interface displays the timing grade and early/late offset after contact.
 
+Six genuinely different deliveries now change the ball path: YORKER, FULL DELIVERY,
+GOOD LENGTH, SHORT BALL, INSWINGER and OUTSWINGER. Their length, bounce, pace and curve differ,
+and the delivery name appears during the run-up. Both batters visibly run and swap creases.
+
 Download the latest verified crease-clash-debug-apk from
 [GitHub Actions](https://github.com/shubhamdm3/crease-clash/actions), then extract the APK.
 See BUILD-STATUS.md for validation. This is an original arcade prototype for device testing.
@@ -29,7 +33,7 @@ the update is incompatible. Uninstalling resets the local best score and setting
 - Taps before the delivery window do not create contact; tap again at the correct time.
 - Only **PERFECT + LOFT** can produce six. PERFECT ground shots can produce four.
 - Club has the largest timing window; Pro and Elite are progressively narrower.
-- Fours, sixes, catches, and pickups follow the ball simulation. Running is automatic, up to three runs.
+- Fours, sixes, catches, and pickups follow the ball simulation. Both batters animate during automatic running, up to three runs.
 - Sound and haptics can be switched off independently. Best score, difficulty, and settings persist.
 - Backgrounding pauses the game. Resume explicitly so a delivery cannot play unseen.
 
@@ -108,8 +112,8 @@ Repository: https://github.com/shubhamdm3/crease-clash. The initial Android work
 ## Scope and limitations
 
 This is an arcade batting prototype, not a full cricket simulator.
-It has one stadium, a fixed field, and pace variations. There is no manual bowling,
-multiplayer, tournament, player roster, spin, swing, LBW, wides, no-balls, or run-outs.
+It has one stadium, a fixed field, and six pace/length/swing variations. There is no manual bowling,
+multiplayer, tournament, player roster, spin bowling, LBW, wides, no-balls, or run-outs.
 There is no mid-match persistence after Android process termination; restarting the app returns to the club.
 
 The simulation uses a fixed 120 Hz step. Rendering follows the device frame rate.
@@ -122,11 +126,13 @@ Android compilation, lint, installation, screen rendering, and basic lifecycle w
 Install the debug APK and test on the OnePlus:
 
 1. Finish one chase and one practice session.
-2. In Club, tap a shot early and verify it connects; try both sides and shot types.
-3. Check the closer camera and ball visibility. Try Pro when you want manual timing.
-4. Confirm hit, wicket, and boundary vibrations feel distinct; switch vibration off.
-5. Background during a delivery, return, and resume from the pause screen.
-6. Check both landscape orientations for comfortable controls and safe screen margins.
+2. In Club, tap too early and confirm there is no contact, then tap again near arrival; try both sides and shot types.
+3. Watch for all six delivery names and confirm short balls, yorkers, inswing and outswing feel different.
+4. Play a ground shot into the field and confirm both batters run in opposite directions.
+5. Check the closer camera and ball visibility. Try Pro for a narrower timing window.
+6. Confirm hit, wicket, and boundary vibrations feel distinct; switch vibration off.
+7. Background during a delivery, return, and resume from the pause screen.
+8. Check both landscape orientations for comfortable controls and safe screen margins.
 
 ## Development references
 
